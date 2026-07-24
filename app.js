@@ -1,0 +1,1 @@
+console.log('DomoCenter V0.1');
