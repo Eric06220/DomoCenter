@@ -1,2 +1,1 @@
-# DomoCenter V0.1
-Prototype initial.
+# DomoCenter V0.2a
