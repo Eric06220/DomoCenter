@@ -1,3 +1,4 @@
+const packageJson = require("../package.json");
 
 function createDashboardService({
   homeAssistantService,
@@ -56,6 +57,15 @@ function createDashboardService({
     
     return {
       system: {
+        
+        domoCenter: {
+          version: packageJson.version,
+          uptimeSeconds: Math.floor(process.uptime()),
+          startedAt: new Date(
+            Date.now() - process.uptime() * 1000
+          ).toISOString(),
+        },
+        
         homeAssistant: {
           connected: true,
           url: homeAssistantUrl,

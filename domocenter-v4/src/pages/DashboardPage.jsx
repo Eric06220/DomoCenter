@@ -13,7 +13,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 import ClimateSection from "../components/dashboard/ClimateSection";
 import EnergySection from "../components/dashboard/EnergySection";
-import InfrastructureSection from "../components/dashboard/InfrastructureSection";
+
 import OpeningSection from "../components/dashboard/OpeningSection";
 import useHomeAssistant from "../hooks/useHomeAssistant";
 
@@ -27,8 +27,7 @@ function DashboardPage() {
   const climateZones = dashboard?.climate?.zones ?? [];
   const openings = dashboard?.security?.openings ?? null;
   const energy = dashboard?.energy ?? null;
-  const infrastructure =
-    dashboard?.infrastructure ?? null;
+  
 
   const services = dashboard?.services;
 
@@ -117,19 +116,14 @@ function DashboardPage() {
           loading={loading}
         />
 
-        <InfrastructureSection
-          infrastructure={infrastructure}
-          loading={loading}
-        />
-
+        
         <Typography
           variant="body2"
           color="text.secondary"
         >
-          Le climat, les ouvertures, l’énergie et
-          l’infrastructure utilisent l’API centralisée
-          DomoCenter. La supervision détaillée est disponible
-          dans sa page dédiée.
+          Le climat, les ouvertures et l’énergie utilisent
+          l’API centralisée DomoCenter. La supervision
+          technique est disponible dans sa page dédiée.
         </Typography>
       </Stack>
     </Box>
