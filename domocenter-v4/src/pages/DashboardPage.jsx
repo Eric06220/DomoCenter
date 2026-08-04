@@ -1,27 +1,27 @@
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Stack,
   Typography,
 } from "@mui/material";
 
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import MonitorHeartRoundedIcon from "@mui/icons-material/MonitorHeartRounded";
+import { Link as RouterLink } from "react-router-dom";
 
 import ClimateSection from "../components/dashboard/ClimateSection";
 import EnergySection from "../components/dashboard/EnergySection";
 import InfrastructureSection from "../components/dashboard/InfrastructureSection";
 import OpeningSection from "../components/dashboard/OpeningSection";
-import SystemStatusCard from "../components/dashboard/SystemStatusCard";
 import useHomeAssistant from "../hooks/useHomeAssistant";
 
 function DashboardPage() {
   const {
     dashboard,
     loading,
-    refreshing,
     error,
-    refreshDashboard,
   } = useHomeAssistant(10000);
 
   const climateZones = dashboard?.climate?.zones ?? [];
@@ -30,13 +30,13 @@ function DashboardPage() {
   const infrastructure =
     dashboard?.infrastructure ?? null;
 
-  async function handleRefresh() {
-    try {
-      await refreshDashboard();
-    } catch {
-      // Le message d’erreur est déjà géré par le hook.
-    }
-  }
+  const services = dashboard?.services;
+
+  const supervisionHealthy =
+    services?.homeAssistant?.online !== false &&
+    services?.domoCenter?.online !== false &&
+    services?.tuya?.online !== false &&
+    services?.internet?.online !== false;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -59,8 +59,7 @@ function DashboardPage() {
               variant="body1"
               color="text.secondary"
             >
-              Vue d’ensemble des données réelles de la
-              maison
+              Vue d’ensemble des données réelles de la maison
             </Typography>
           </Box>
 
@@ -74,23 +73,34 @@ function DashboardPage() {
 
         {error && (
           <Alert severity="error">
-            Impossible de récupérer les données du
-            Dashboard : {error}
+            Impossible de récupérer les données du Dashboard : {error}
           </Alert>
         )}
 
         {!error && dashboard && (
           <Alert severity="success">
-            Les données sont centralisées par l’API
-            DomoCenter.
+            Les données sont centralisées par l’API DomoCenter.
           </Alert>
         )}
 
-        <SystemStatusCard
-          dashboard={dashboard}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
+        <Alert
+          severity={supervisionHealthy ? "success" : "warning"}
+          icon={<MonitorHeartRoundedIcon />}
+          action={
+            <Button
+              component={RouterLink}
+              to="/supervision"
+              color="inherit"
+              size="small"
+            >
+              Ouvrir
+            </Button>
+          }
+        >
+          {supervisionHealthy
+            ? "La supervision technique est opérationnelle."
+            : "Un élément de supervision nécessite votre attention."}
+        </Alert>
 
         <ClimateSection
           zones={climateZones}
@@ -118,8 +128,8 @@ function DashboardPage() {
         >
           Le climat, les ouvertures, l’énergie et
           l’infrastructure utilisent l’API centralisée
-          DomoCenter. L’éclairage et les caméras seront
-          ajoutés ensuite.
+          DomoCenter. La supervision détaillée est disponible
+          dans sa page dédiée.
         </Typography>
       </Stack>
     </Box>

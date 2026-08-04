@@ -32,6 +32,8 @@ import SecurityPage from "./pages/SecurityPage";
 import EnergyPage from "./pages/EnergyPage";
 import SettingsPage from "./pages/SettingsPage";
 
+import SupervisionPage from "./pages/SupervisionPage";
+
 const drawerWidth = 260;
 
 const menuItems = [
@@ -60,6 +62,13 @@ const menuItems = [
     path: "/energy",
     icon: <BoltRoundedIcon />,
   },
+  
+  {
+    label: "Supervision",
+    path: "/supervision",
+    icon: <HubRoundedIcon />,
+  },
+  
   {
     label: "Paramètres",
     path: "/settings",
@@ -282,8 +291,10 @@ function App() {
             <Route path="/cameras" element={<CameraPage />} />
             <Route path="/security" element={<SecurityPage />} />
             <Route path="/energy" element={<EnergyPage />} />
+            <Route path="/supervision" element={<SupervisionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
+
         </Box>
       </Box>
     </>
