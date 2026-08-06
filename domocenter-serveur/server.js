@@ -2,6 +2,11 @@ const {
   createDashboardService,
 } = require("./services/dashboardService");
 
+
+const {
+  createLightingRouter,
+} = require("./lightingRoutes");
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -84,6 +89,12 @@ const dashboardService = createDashboardService({
   homeAssistantUrl,
 });
 
+const lightingRouter = createLightingRouter({
+  homeAssistantService,
+  entityConfiguration,
+  dashboardService,
+});
+
 const energyControlService = createEnergyControlService({
   entityConfiguration,
   homeAssistantService,
@@ -99,6 +110,8 @@ app.use(
 
 app.use(express.json());
 
+
+app.use("/api/lighting", lightingRouter);
 
 function getErrorDetails(error) {
   return (

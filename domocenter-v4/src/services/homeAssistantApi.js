@@ -33,3 +33,15 @@ export async function refreshDashboardData() {
     },
   });
 }
+
+export async function setLightingDeviceState(deviceId, isOn) {
+  return fetchJson(`/api/lighting/${deviceId}/switch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      isOn,
+    }),
+  });
+}

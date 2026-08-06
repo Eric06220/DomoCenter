@@ -1,285 +1,452 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   Chip,
-  Grid,
+  CircularProgress,
+  Paper,
   Stack,
-  Switch,
   Typography,
 } from "@mui/material";
 
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import DeckRoundedIcon from "@mui/icons-material/DeckRounded";
+import ForestRoundedIcon from "@mui/icons-material/ForestRounded";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import PoolRoundedIcon from "@mui/icons-material/PoolRounded";
-import ForestRoundedIcon from "@mui/icons-material/ForestRounded";
-import DeckRoundedIcon from "@mui/icons-material/DeckRounded";
-import ChairRoundedIcon from "@mui/icons-material/ChairRounded";
-import MeetingRoomRoundedIcon from "@mui/icons-material/MeetingRoomRounded";
-import FenceRoundedIcon from "@mui/icons-material/FenceRounded";
-import PowerRoundedIcon from "@mui/icons-material/PowerRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
-const initialDevices = [
-  {
-    id: "spot-piscine",
-    name: "Spot piscine",
-    location: "Piscine",
-    type: "SONOFF 4CH · Canal 1",
-    category: "Piscine",
-    enabled: true,
-  },
-  {
-    id: "eclairage-piscine",
-    name: "Éclairage piscine",
-    location: "Piscine",
-    type: "SONOFF 4CH · Canal 2",
-    category: "Piscine",
-    enabled: false,
-  },
-  {
-    id: "palmiers",
-    name: "Éclairage palmiers",
-    location: "Jardin",
-    type: "SONOFF 4CH · Canal 3",
-    category: "Jardin",
-    enabled: true,
-  },
-  {
-    id: "olivier-allee",
-    name: "Éclairage olivier allée",
-    location: "Allée",
-    type: "SONOFF 4CH · Canal 4",
-    category: "Jardin",
-    enabled: false,
-  },
-  {
-    id: "hp-piscine",
-    name: "HP Piscine",
-    location: "Piscine",
-    type: "Prise Tuya",
-    category: "Prise",
-    enabled: false,
-  },
-  {
-    id: "lampe-piscine",
-    name: "Lampe piscine",
-    location: "Piscine",
-    type: "Prise Tuya",
-    category: "Piscine",
-    enabled: true,
-  },
-  {
-    id: "salon",
-    name: "Lumière salon",
-    location: "Maison",
-    type: "Mini interrupteur Wi-Fi",
-    category: "Maison",
-    enabled: true,
-  },
-  {
-    id: "couloir",
-    name: "Lumière couloir",
-    location: "Maison",
-    type: "Mini interrupteur Wi-Fi",
-    category: "Maison",
-    enabled: false,
-  },
-  {
-    id: "pergola",
-    name: "Lumière pergola",
-    location: "Extérieur",
-    type: "Mini interrupteur Wi-Fi",
-    category: "Extérieur",
-    enabled: false,
-  },
-  {
-    id: "portail",
-    name: "Portail",
-    location: "Entrée",
-    type: "Mini interrupteur Wi-Fi",
-    category: "Portail",
-    enabled: false,
-  },
-];
+import DeviceGroup from "../components/devices/DeviceGroup";
+import DeviceHeader from "../components/devices/DeviceHeader";
+import useHomeAssistant from "../hooks/useHomeAssistant";
+import {
+  setLightingDeviceState,
+} from "../services/homeAssistantApi";
 
-function getDeviceIcon(category) {
-  switch (category) {
-    case "Piscine":
-      return <PoolRoundedIcon />;
+const COMMAND_REFRESH_DELAY_MS = 700;
 
-    case "Jardin":
-      return <ForestRoundedIcon />;
+const GROUP_CONFIGURATION = {
+  Piscine: {
+    order: 1,
+    icon: <PoolRoundedIcon />,
+  },
+  Maison: {
+    order: 2,
+    icon: <HomeRoundedIcon />,
+  },
+  Jardin: {
+    order: 3,
+    icon: <ForestRoundedIcon />,
+  },
+  Allée: {
+    order: 4,
+    icon: <ForestRoundedIcon />,
+  },
+  Extérieur: {
+    order: 5,
+    icon: <DeckRoundedIcon />,
+  },
+};
 
-    case "Extérieur":
-      return <DeckRoundedIcon />;
+function wait(delayMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
 
-    case "Maison":
-      return <ChairRoundedIcon />;
+function getGroupConfiguration(location) {
+  return (
+    GROUP_CONFIGURATION[location] ?? {
+      order: 99,
+      icon: <LightbulbRoundedIcon />,
+    }
+  );
+}
 
-    case "Portail":
-      return <FenceRoundedIcon />;
+function addIds(currentIds, nextIds) {
+  return Array.from(
+    new Set([...currentIds, ...nextIds])
+  );
+}
 
-    case "Prise":
-      return <PowerRoundedIcon />;
+function removeIds(currentIds, removedIds) {
+  const removedIdSet = new Set(removedIds);
 
-    default:
-      return <LightbulbRoundedIcon />;
-  }
+  return currentIds.filter(
+    (deviceId) => !removedIdSet.has(deviceId)
+  );
 }
 
 function LightingPage() {
-  const [devices, setDevices] = useState(initialDevices);
+  const {
+    dashboard,
+    loading,
+    refreshing,
+    error,
+    refreshDashboard,
+  } = useHomeAssistant(10000);
 
-  const activeDevices = devices.filter((device) => device.enabled).length;
+  const [pendingDeviceIds, setPendingDeviceIds] =
+    useState([]);
 
-  const toggleDevice = (deviceId) => {
-    setDevices((currentDevices) =>
-      currentDevices.map((device) =>
-        device.id === deviceId
-          ? {
-              ...device,
-              enabled: !device.enabled,
-            }
-          : device
+  const [pendingGroupNames, setPendingGroupNames] =
+    useState([]);
+
+  const [optimisticStates, setOptimisticStates] =
+    useState({});
+
+  const [commandError, setCommandError] =
+    useState("");
+
+  const lighting = dashboard?.lighting;
+  const devices = lighting?.devices ?? [];
+
+  useEffect(() => {
+    setOptimisticStates((currentStates) => {
+      let changed = false;
+      const nextStates = { ...currentStates };
+
+      devices.forEach((device) => {
+        const hasOptimisticState =
+          Object.prototype.hasOwnProperty.call(
+            nextStates,
+            device.id
+          );
+
+        const commandPending =
+          pendingDeviceIds.includes(device.id);
+
+        if (
+          hasOptimisticState &&
+          !commandPending &&
+          nextStates[device.id] === device.isOn
+        ) {
+          delete nextStates[device.id];
+          changed = true;
+        }
+      });
+
+      return changed
+        ? nextStates
+        : currentStates;
+    });
+  }, [devices, pendingDeviceIds]);
+
+  const displayedDevices = useMemo(
+    () =>
+      devices.map((device) => ({
+        ...device,
+        displayedIsOn:
+          optimisticStates[device.id] ??
+          device.isOn,
+      })),
+    [devices, optimisticStates]
+  );
+
+  const groups = useMemo(() => {
+    const groupedDevices = new Map();
+
+    displayedDevices.forEach((device) => {
+      const groupName =
+        device.group || "Autres";
+
+      const currentGroup =
+        groupedDevices.get(groupName) ?? [];
+
+      currentGroup.push(device);
+
+      currentGroup.sort(
+        (a, b) => a.order - b.order
+      );
+      
+      groupedDevices.set(
+        groupName,
+        currentGroup
+      );
+    });
+
+    return Array.from(
+      groupedDevices.entries()
+    )
+      .map(([name, groupDevices]) => ({
+        name,
+        devices: groupDevices,
+        ...getGroupConfiguration(name),
+      }))
+      .sort(
+        (firstGroup, secondGroup) =>
+          firstGroup.order - secondGroup.order
+      );
+  }, [displayedDevices]);
+
+  const activeDevices = displayedDevices.filter(
+    (device) =>
+      device.available && device.displayedIsOn
+  ).length;
+
+  const unavailableDevices =
+    lighting?.unavailableCount ?? 0;
+
+  function setOptimisticState(deviceIds, isOn) {
+    setOptimisticStates((currentStates) => {
+      const nextStates = { ...currentStates };
+
+      deviceIds.forEach((deviceId) => {
+        nextStates[deviceId] = isOn;
+      });
+
+      return nextStates;
+    });
+  }
+
+  function removeOptimisticStates(deviceIds) {
+    setOptimisticStates((currentStates) => {
+      const nextStates = { ...currentStates };
+
+      deviceIds.forEach((deviceId) => {
+        delete nextStates[deviceId];
+      });
+
+      return nextStates;
+    });
+  }
+
+  async function synchronizeDashboard() {
+    await wait(COMMAND_REFRESH_DELAY_MS);
+    await refreshDashboard();
+  }
+
+  async function handleToggleDevice(device) {
+    if (
+      !device.available ||
+      pendingDeviceIds.includes(device.id)
+    ) {
+      return;
+    }
+
+    const nextIsOn = !device.displayedIsOn;
+
+    setCommandError("");
+    setOptimisticState(
+      [device.id],
+      nextIsOn
+    );
+
+    setPendingDeviceIds((currentIds) =>
+      addIds(currentIds, [device.id])
+    );
+
+    try {
+      await setLightingDeviceState(
+        device.id,
+        nextIsOn
+      );
+
+      await synchronizeDashboard();
+    } catch (caughtError) {
+      removeOptimisticStates([device.id]);
+
+      setCommandError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : `Impossible de commander ${device.name}.`
+      );
+
+      try {
+        await refreshDashboard();
+      } catch {
+        // Le hook expose déjà l’erreur de synchronisation.
+      }
+    } finally {
+      setPendingDeviceIds((currentIds) =>
+        removeIds(currentIds, [device.id])
+      );
+    }
+  }
+
+  async function handleSetGroupState(
+    groupDevices,
+    nextIsOn
+  ) {
+    const availableDevices =
+      groupDevices.filter(
+        (device) =>
+          device.available &&
+          !pendingDeviceIds.includes(device.id)
+      );
+
+    if (availableDevices.length === 0) {
+      return;
+    }
+
+    const groupName =
+      availableDevices[0].group || "Autres";
+
+    const deviceIds = availableDevices.map(
+      (device) => device.id
+    );
+
+    setCommandError("");
+    setOptimisticState(deviceIds, nextIsOn);
+
+    setPendingGroupNames((currentNames) =>
+      addIds(currentNames, [groupName])
+    );
+
+    setPendingDeviceIds((currentIds) =>
+      addIds(currentIds, deviceIds)
+    );
+
+    const results = await Promise.allSettled(
+      availableDevices.map((device) =>
+        setLightingDeviceState(
+          device.id,
+          nextIsOn
+        )
       )
     );
-  };
+
+    const failedDeviceIds = results
+      .map((result, index) => ({
+        result,
+        deviceId:
+          availableDevices[index].id,
+      }))
+      .filter(
+        ({ result }) =>
+          result.status === "rejected"
+      )
+      .map(({ deviceId }) => deviceId);
+
+    if (failedDeviceIds.length > 0) {
+      removeOptimisticStates(
+        failedDeviceIds
+      );
+
+      setCommandError(
+        `${failedDeviceIds.length} commande${
+          failedDeviceIds.length > 1 ? "s ont" : " a"
+        } échoué dans la zone ${groupName}.`
+      );
+    }
+
+    try {
+      await synchronizeDashboard();
+    } catch {
+      setCommandError(
+        "Les commandes ont été envoyées, mais la synchronisation avec Home Assistant a échoué."
+      );
+    } finally {
+      setPendingDeviceIds((currentIds) =>
+        removeIds(currentIds, deviceIds)
+      );
+
+      setPendingGroupNames((currentNames) =>
+        removeIds(currentNames, [groupName])
+      );
+    }
+  }
+
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={3}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          justifyContent="space-between"
-          spacing={2}
-        >
-          <Box>
-            <Typography variant="h4" fontWeight={800}>
-              Éclairage
+        
+        <DeviceHeader
+          title="Éclairage"
+          subtitle="Pilotage des éclairages et prises commandées, regroupés par zone"
+          active={activeDevices}
+          unavailable={unavailableDevices}
+        />
+          
+        {error && (
+          <Alert severity="error">
+            Impossible de récupérer les équipements
+            d’éclairage : {error}
+          </Alert>
+        )}
+
+        {commandError && (
+          <Alert severity="error">
+            {commandError}
+          </Alert>
+        )}
+
+        {!error && !commandError && (
+          <Alert severity="success">
+            Les équipements sont connectés à Home
+            Assistant et peuvent être commandés depuis
+            DomoCenter.
+          </Alert>
+        )}
+
+        {loading && !dashboard ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            spacing={2}
+            sx={{ py: 8 }}
+          >
+            <CircularProgress />
+
+            <Typography color="text.secondary">
+              Chargement des équipements…
             </Typography>
-
-            <Typography variant="body1" color="text.secondary">
-              Commande des éclairages, prises et interrupteurs connectés
-            </Typography>
-          </Box>
-
-          <Chip
-            icon={<CheckCircleRoundedIcon />}
-            label={`${activeDevices} équipement${
-              activeDevices > 1 ? "s" : ""
-            } actif${activeDevices > 1 ? "s" : ""}`}
-            color={activeDevices > 0 ? "primary" : "default"}
-            variant={activeDevices > 0 ? "filled" : "outlined"}
-          />
-        </Stack>
-
-        <Alert severity="info">
-          Les commandes sont actuellement simulées dans DomoCenter. Elles ne
-          pilotent pas encore les vrais équipements.
-        </Alert>
-
-        <Grid container spacing={2}>
-          {devices.map((device) => (
-            <Grid key={device.id} size={{ xs: 12, sm: 6, lg: 4 }}>
-              <Card
-                sx={{
-                  height: "100%",
-                  borderColor: device.enabled
-                    ? "primary.light"
-                    : "divider",
-                  bgcolor: device.enabled
-                    ? "rgba(37, 99, 235, 0.035)"
-                    : "background.paper",
-                }}
+          </Stack>
+        ) : (
+          <Stack spacing={3}>
+            {groups.map((group) => (
+              <Paper
+                key={group.name}
+                variant="outlined"
+                sx={{ p: { xs: 2, md: 2.5 } }}
               >
-                <CardContent sx={{ p: 2.5 }}>
-                  <Stack spacing={2.25}>
-                    <Stack
-                      direction="row"
-                      alignItems="flex-start"
-                      justifyContent="space-between"
-                      spacing={2}
-                    >
-                      <Box
-                        sx={{
-                          width: 50,
-                          height: 50,
-                          display: "grid",
-                          placeItems: "center",
-                          borderRadius: 3,
-                          bgcolor: device.enabled
-                            ? "primary.main"
-                            : "action.hover",
-                          color: device.enabled
-                            ? "primary.contrastText"
-                            : "text.secondary",
-                        }}
-                      >
-                        {getDeviceIcon(device.category)}
-                      </Box>
+                <DeviceGroup
+                  title={group.name}
+                  icon={group.icon}
+                  devices={group.devices}
+                  pendingDeviceIds={
+                    pendingDeviceIds
+                  }
+                  controlsDisabled={refreshing}
+                  groupPending={pendingGroupNames.includes(
+                    group.name
+                  )}
+                  onToggleDevice={
+                    handleToggleDevice
+                  }
+                  onSetAll={
+                    handleSetGroupState
+                  }
+                />
+              </Paper>
+            ))}
+          </Stack>
+        )}
 
-                      <Switch
-                        checked={device.enabled}
-                        onChange={() => toggleDevice(device.id)}
-                        inputProps={{
-                          "aria-label": `Activer ou désactiver ${device.name}`,
-                        }}
-                      />
-                    </Stack>
+        {!loading &&
+          !error &&
+          groups.length === 0 && (
+            <Alert severity="warning">
+              Aucun équipement d’éclairage n’est configuré
+              dans l’API DomoCenter.
+            </Alert>
+          )}
 
-                    <Box>
-                      <Typography variant="h6" fontWeight={800}>
-                        {device.name}
-                      </Typography>
-
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={0.75}
-                        sx={{ mt: 0.5 }}
-                      >
-                        <MeetingRoomRoundedIcon
-                          sx={{
-                            fontSize: 17,
-                            color: "text.secondary",
-                          }}
-                        />
-
-                        <Typography variant="body2" color="text.secondary">
-                          {device.location}
-                        </Typography>
-                      </Stack>
-                    </Box>
-
-                    <Stack spacing={1}>
-                      <Typography variant="body2" color="text.secondary">
-                        {device.type}
-                      </Typography>
-
-                      <Chip
-                        label={device.enabled ? "Allumé" : "Éteint"}
-                        color={device.enabled ? "success" : "default"}
-                        size="small"
-                        variant={device.enabled ? "filled" : "outlined"}
-                        sx={{
-                          alignSelf: "flex-start",
-                        }}
-                      />
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        <Typography variant="body2" color="text.secondary">
-          Les interrupteurs modifient uniquement l’état affiché dans cette page.
-          La connexion réelle sera ajoutée après l’installation de Home
-          Assistant.
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
+          Les commandes sont affichées immédiatement, puis
+          vérifiées auprès de Home Assistant. Les états sont
+          également actualisés automatiquement toutes les
+          dix secondes.
         </Typography>
       </Stack>
     </Box>

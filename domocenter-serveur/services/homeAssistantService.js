@@ -48,9 +48,21 @@ function createHomeAssistantService({
 
     const serviceName = isOn ? "turn_on" : "turn_off";
 
-    await api.post(`/services/switch/${serviceName}`, {
-      entity_id: entityId,
-    });
+    try {
+      await api.post(`/services/switch/${serviceName}`, {
+        entity_id: entityId,
+      });
+    } catch (error) {
+      console.error("Erreur de commande Home Assistant :", {
+        status: error.response?.status,
+        data: error.response?.data,
+        entityId,
+        serviceName,
+      });
+
+      throw error;
+    }
+
   }
 
   return {
@@ -63,3 +75,4 @@ function createHomeAssistantService({
 module.exports = {
   createHomeAssistantService,
 };
+
