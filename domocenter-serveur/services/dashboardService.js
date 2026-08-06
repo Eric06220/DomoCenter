@@ -6,6 +6,7 @@ function createDashboardService({
   buildClimateData,
   buildOpeningData,
   buildEnergyData,
+  buildLightingData,
   buildInfrastructureData,
   buildServicesStatus,
   findEntity,
@@ -109,6 +110,15 @@ function createDashboardService({
         readSwitchEntity
       ),
 
+      
+      lighting: buildLightingData({
+        lightingDevices:
+          entityConfiguration.lightingDevices ?? [],
+        entities,
+        findEntity,
+        isEntityAvailable,
+      }),
+      
       infrastructure: buildInfrastructureData(
         entityConfiguration.infrastructure,
         entities,

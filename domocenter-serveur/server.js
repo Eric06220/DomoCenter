@@ -15,6 +15,12 @@ const {
 const {
   buildEnergyData,
 } = require("./services/energyService");
+
+const {
+  buildLightingData,
+} = require("./services/lightingService");
+
+
 const {
   createHomeAssistantService,
 } = require("./services/homeAssistantService");
@@ -22,9 +28,6 @@ const {
 const {
   createEnergyControlService,
 } = require("./services/energyControlService");
-
-
-
 
 
 const {
@@ -70,6 +73,7 @@ const dashboardService = createDashboardService({
   buildClimateData,
   buildOpeningData,
   buildEnergyData,
+  buildLightingData,
   buildInfrastructureData,
   buildServicesStatus,
   findEntity,

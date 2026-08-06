@@ -98,6 +98,88 @@ const devices = {
     },
   ],
 
+  lightingDevices: [
+    {
+      id: "spot-piscine",
+      name: "Spot piscine",
+      location: "Piscine",
+      entityId:
+        "switch.eclairages_jardin_sonoff_100020aad1_1",
+      icon: "lightbulb",
+    },
+    {
+      id: "eclairage-piscine",
+      name: "Éclairage piscine",
+      location: "Piscine",
+      entityId:
+        "switch.eclairages_jardin_sonoff_100020aad1_2",
+      icon: "lightbulb",
+    },
+    {
+      id: "palmiers",
+      name: "Éclairage palmiers",
+      location: "Jardin",
+      entityId:
+        "switch.eclairages_jardin_sonoff_100020aad1_3",
+      icon: "lightbulb",
+    },
+    {
+      id: "olivier-allee",
+      name: "Éclairage olivier allée",
+      location: "Allée",
+      entityId:
+        "switch.eclairages_jardin_sonoff_100020aad1_4",
+      icon: "lightbulb",
+    },
+    {
+      id: "pergola",
+      name: "Pergola",
+      location: "Extérieur",
+      entityId: "switch.pergola_sonoff_10015a8233",
+      icon: "lightbulb",
+    },
+    
+    {
+      id: "couloir",
+      name: "Lumière couloir",
+      location: "Maison",
+      entityId: "switch.lumiere_couloir_switch_1",
+      icon: "lightbulb",
+    },
+    {
+      id: "sam",
+      name: "Lumière SAM",
+      location: "Maison",
+      entityId: "switch.lumiere_sam_switch_1",
+      icon: "lightbulb",
+    },
+
+    {
+      id: "hp-piscine",
+      name: "HP Piscine",
+      location: "Piscine",
+      entityId: "switch.prises_piscine_socket_1",
+      icon: "outlet",
+    },
+    {
+      id: "lampe-piscine",
+      name: "Lampe piscine",
+      location: "Piscine",
+      entityId: "switch.prises_piscine_socket_2",
+      icon: "outlet",
+    },
+  ],
+
+  accessDevices: [
+    {
+      id: "portail",
+      name: "Portail",
+      location: "Entrée",
+      entityId: "switch.portail_sonoff_1000ea498f",
+      icon: "gate",
+    },
+  ],
+
   infrastructure: {
     cpuTemperatureEntityId:
       "sensor.system_monitor_temperature_du_processeur",
