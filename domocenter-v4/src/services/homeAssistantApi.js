@@ -8,13 +8,17 @@ async function fetchJson(path, options = {}) {
 
     try {
       const errorData = await response.json();
-      details = errorData.details || errorData.error || "";
+      details =
+        errorData.details ||
+        errorData.error ||
+        "";
     } catch {
       details = "";
     }
 
     throw new Error(
-      details || `Erreur du serveur DomoCenter : ${response.status}`
+      details ||
+        `Erreur du serveur DomoCenter : ${response.status}`
     );
   }
 
@@ -34,14 +38,36 @@ export async function refreshDashboardData() {
   });
 }
 
-export async function setLightingDeviceState(deviceId, isOn) {
-  return fetchJson(`/api/lighting/${deviceId}/switch`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      isOn,
-    }),
-  });
+export async function setLightingDeviceState(
+  deviceId,
+  isOn
+) {
+  return fetchJson(
+    `/api/lighting/${deviceId}/switch`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        isOn,
+      }),
+    }
+  );
+}
+
+export async function getAccessData() {
+  return fetchJson("/api/access");
+}
+
+export async function triggerPortal() {
+  return fetchJson(
+    "/api/access/portail/trigger",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
 }

@@ -20,6 +20,7 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
+import DoorFrontRoundedIcon from "@mui/icons-material/DoorFrontRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
@@ -28,6 +29,7 @@ import CircleIcon from "@mui/icons-material/Circle";
 import DashboardPage from "./pages/DashboardPage";
 import LightingPage from "./pages/LightingPage";
 import CameraPage from "./pages/CameraPage";
+import AccessPage from "./pages/AccessPage";
 import SecurityPage from "./pages/SecurityPage";
 import EnergyPage from "./pages/EnergyPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -48,6 +50,11 @@ const menuItems = [
     icon: <LightbulbRoundedIcon />,
   },
   {
+    label: "Accès",
+    path: "/access",
+    icon: <DoorFrontRoundedIcon />,
+  },
+  {
     label: "Caméras",
     path: "/cameras",
     icon: <VideocamRoundedIcon />,
@@ -62,7 +69,6 @@ const menuItems = [
     path: "/energy",
     icon: <BoltRoundedIcon />,
   },
-  
   {
     label: "Supervision",
     path: "/supervision",
@@ -288,6 +294,7 @@ function App() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/lighting" element={<LightingPage />} />
+            <Route path="/access" element={<AccessPage />} />
             <Route path="/cameras" element={<CameraPage />} />
             <Route path="/security" element={<SecurityPage />} />
             <Route path="/energy" element={<EnergyPage />} />

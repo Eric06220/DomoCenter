@@ -2,21 +2,28 @@ const {
   createDashboardService,
 } = require("./services/dashboardService");
 
-
 const {
   createLightingRouter,
 } = require("./lightingRoutes");
 
+const {
+  createAccessRouter,
+} = require("./accessRoutes");
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 const {
   buildClimateData,
 } = require("./services/climateService");
+
 const entityConfiguration = require("./config/devices");
+
 const {
   buildOpeningData,
 } = require("./services/securityService");
+
 const {
   buildEnergyData,
 } = require("./services/energyService");
@@ -24,7 +31,6 @@ const {
 const {
   buildLightingData,
 } = require("./services/lightingService");
-
 
 const {
   createHomeAssistantService,
@@ -34,10 +40,10 @@ const {
   createEnergyControlService,
 } = require("./services/energyControlService");
 
-
 const {
   buildInfrastructureData,
 } = require("./services/infrastructureService");
+
 const {
   buildServicesStatus,
 } = require("./services/servicesStatusService");
@@ -54,8 +60,10 @@ dotenv.config();
 const app = express();
 
 const port = Number(process.env.PORT) || 3001;
-const homeAssistantUrl = process.env.HOME_ASSISTANT_URL;
-const homeAssistantToken = process.env.HOME_ASSISTANT_TOKEN;
+const homeAssistantUrl =
+  process.env.HOME_ASSISTANT_URL;
+const homeAssistantToken =
+  process.env.HOME_ASSISTANT_TOKEN;
 
 const CACHE_DURATION_MS = 10_000;
 
@@ -67,40 +75,51 @@ if (!homeAssistantUrl || !homeAssistantToken) {
   process.exit(1);
 }
 
-const homeAssistantService = createHomeAssistantService({
-  baseUrl: homeAssistantUrl,
-  token: homeAssistantToken,
-});
+const homeAssistantService =
+  createHomeAssistantService({
+    baseUrl: homeAssistantUrl,
+    token: homeAssistantToken,
+  });
 
-const dashboardService = createDashboardService({
-  homeAssistantService,
-  entityConfiguration,
-  buildClimateData,
-  buildOpeningData,
-  buildEnergyData,
-  buildLightingData,
-  buildInfrastructureData,
-  buildServicesStatus,
-  findEntity,
-  isEntityAvailable,
-  readNumericEntity,
-  readSwitchEntity,
-  cacheDurationMs: CACHE_DURATION_MS,
-  homeAssistantUrl,
-});
+const dashboardService =
+  createDashboardService({
+    homeAssistantService,
+    entityConfiguration,
+    buildClimateData,
+    buildOpeningData,
+    buildEnergyData,
+    buildLightingData,
+    buildInfrastructureData,
+    buildServicesStatus,
+    findEntity,
+    isEntityAvailable,
+    readNumericEntity,
+    readSwitchEntity,
+    cacheDurationMs: CACHE_DURATION_MS,
+    homeAssistantUrl,
+  });
 
-const lightingRouter = createLightingRouter({
-  homeAssistantService,
-  entityConfiguration,
-  dashboardService,
-});
+const lightingRouter =
+  createLightingRouter({
+    homeAssistantService,
+    entityConfiguration,
+    dashboardService,
+  });
 
-const energyControlService = createEnergyControlService({
-  entityConfiguration,
-  homeAssistantService,
-  clearDashboardCache: dashboardService.clearCache,
-});
+const accessRouter =
+  createAccessRouter({
+    homeAssistantService,
+    entityConfiguration,
+    dashboardService,
+  });
 
+const energyControlService =
+  createEnergyControlService({
+    entityConfiguration,
+    homeAssistantService,
+    clearDashboardCache:
+      dashboardService.clearCache,
+  });
 
 app.use(
   cors({
@@ -110,8 +129,8 @@ app.use(
 
 app.use(express.json());
 
-
 app.use("/api/lighting", lightingRouter);
+app.use("/api/access", accessRouter);
 
 function getErrorDetails(error) {
   return (
@@ -148,7 +167,8 @@ app.get(
       response.json({
         connected: true,
         homeAssistantUrl,
-        message: homeAssistantStatus.message,
+        message:
+          homeAssistantStatus.message,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -158,7 +178,8 @@ app.get(
           connected: false,
           error:
             "Connexion à Home Assistant impossible",
-          details: getErrorDetails(error),
+          details:
+            getErrorDetails(error),
         });
     }
   }
@@ -181,7 +202,8 @@ app.get(
         .json({
           error:
             "Impossible de récupérer les entités Home Assistant",
-          details: getErrorDetails(error),
+          details:
+            getErrorDetails(error),
         });
     }
   }
@@ -192,7 +214,9 @@ app.get(
   async (request, response) => {
     try {
       const dashboard =
-        await dashboardService.getDashboardData(false);
+        await dashboardService.getDashboardData(
+          false
+        );
 
       response.json(dashboard);
     } catch (error) {
@@ -201,7 +225,8 @@ app.get(
         .json({
           error:
             "Impossible de construire le Dashboard DomoCenter",
-          details: getErrorDetails(error),
+          details:
+            getErrorDetails(error),
 
           system: {
             homeAssistant: {
@@ -218,7 +243,9 @@ app.post(
   async (request, response) => {
     try {
       const dashboard =
-        await dashboardService.getDashboardData(true);
+        await dashboardService.getDashboardData(
+          true
+        );
 
       response.json(dashboard);
     } catch (error) {
@@ -227,7 +254,8 @@ app.post(
         .json({
           error:
             "Impossible de synchroniser le Dashboard DomoCenter",
-          details: getErrorDetails(error),
+          details:
+            getErrorDetails(error),
         });
     }
   }
@@ -241,39 +269,44 @@ app.post(
       const { isOn } = request.body;
 
       if (typeof isOn !== "boolean") {
-        return response.status(400).json({
-          success: false,
-          error:
-            "Le champ isOn doit contenir true ou false.",
-        });
+        return response
+          .status(400)
+          .json({
+            success: false,
+            error:
+              "Le champ isOn doit contenir true ou false.",
+          });
       }
 
       const command =
         await energyControlService.setEnergyDeviceState(
-        deviceId,
-        isOn
-     );
+          deviceId,
+          isOn
+        );
 
       await new Promise((resolve) => {
         setTimeout(resolve, 800);
       });
 
       const dashboard =
-        await dashboardService.getDashboardData(true);
+        await dashboardService.getDashboardData(
+          true
+        );
 
-      response.json({
+      return response.json({
         success: true,
         command,
         energy: dashboard.energy,
       });
     } catch (error) {
-      response
+      return response
         .status(getErrorStatus(error))
         .json({
           success: false,
           error:
             "Impossible de commander cet équipement.",
-          details: getErrorDetails(error),
+          details:
+            getErrorDetails(error),
         });
     }
   }
@@ -284,6 +317,35 @@ app.use((request, response) => {
     error: "Route introuvable",
   });
 });
+
+app.use(
+  (error, request, response, next) => {
+    console.error(
+      "Erreur API DomoCenter :",
+      {
+        message: error.message,
+        status:
+          error.response?.status,
+        data:
+          error.response?.data,
+      }
+    );
+
+    if (response.headersSent) {
+      return next(error);
+    }
+
+    return response
+      .status(getErrorStatus(error))
+      .json({
+        success: false,
+        error:
+          "Une erreur est survenue dans l’API DomoCenter.",
+        details:
+          getErrorDetails(error),
+      });
+  }
+);
 
 app.listen(port, () => {
   console.log(
@@ -296,6 +358,14 @@ app.listen(port, () => {
 
   console.log(
     `Dashboard disponible sur http://localhost:${port}/api/dashboard`
+  );
+
+  console.log(
+    `Éclairage disponible sur http://localhost:${port}/api/lighting`
+  );
+
+  console.log(
+    `Accès disponible sur http://localhost:${port}/api/access`
   );
 
   console.log(
