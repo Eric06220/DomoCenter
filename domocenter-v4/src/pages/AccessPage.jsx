@@ -53,14 +53,17 @@ function AccessPage() {
   );
 
   useEffect(() => {
-    loadAccessData();
+    const initialLoadTimer = window.setTimeout(() => {
+      loadAccessData();
+    }, 0);
 
-    const timer = window.setInterval(() => {
+    const refreshTimer = window.setInterval(() => {
       loadAccessData({ silent: true });
     }, REFRESH_INTERVAL_MS);
 
     return () => {
-      window.clearInterval(timer);
+      window.clearTimeout(initialLoadTimer);
+      window.clearInterval(refreshTimer);
     };
   }, [loadAccessData]);
 

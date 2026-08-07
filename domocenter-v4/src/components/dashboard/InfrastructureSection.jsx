@@ -8,7 +8,7 @@ import InfrastructureCard from "./InfrastructureCard";
 
 function InfrastructureSection({
   infrastructure,
-  loading = false,
+  
 }) {
   if (!infrastructure) {
     return null;

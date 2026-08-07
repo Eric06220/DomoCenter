@@ -4,16 +4,15 @@ async function fetchJson(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, options);
 
   if (!response.ok) {
-    let details = "";
+    let details;
 
     try {
       const errorData = await response.json();
       details =
         errorData.details ||
-        errorData.error ||
-        "";
+        errorData.error;
     } catch {
-      details = "";
+      details = undefined;
     }
 
     throw new Error(
@@ -24,6 +23,7 @@ async function fetchJson(path, options = {}) {
 
   return response.json();
 }
+
 
 export async function getDashboardData() {
   return fetchJson("/api/dashboard");

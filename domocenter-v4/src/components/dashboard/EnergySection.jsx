@@ -57,7 +57,13 @@ function EnergySection({ energy, loading = false }) {
   );
 
   useEffect(() => {
-    setCurrentEnergy(energy ?? null);
+    const timer = window.setTimeout(() => {
+      setCurrentEnergy(energy ?? null);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [energy]);
 
   const devices = currentEnergy?.devices ?? [];

@@ -13,9 +13,9 @@ function useHomeAssistant(refreshInterval = 10000) {
 
   const loadDashboard = useCallback(async () => {
     try {
-      setError("");
-
       const nextDashboard = await getDashboardData();
+
+      setError("");
       setDashboard(nextDashboard);
     } catch (caughtError) {
       setError(
@@ -33,7 +33,9 @@ function useHomeAssistant(refreshInterval = 10000) {
       setRefreshing(true);
       setError("");
 
-      const nextDashboard = await refreshDashboardData();
+      const nextDashboard =
+        await refreshDashboardData();
+
       setDashboard(nextDashboard);
 
       return nextDashboard;
@@ -51,15 +53,18 @@ function useHomeAssistant(refreshInterval = 10000) {
   }, []);
 
   useEffect(() => {
-    loadDashboard();
+    const initialLoadTimer = window.setTimeout(() => {
+      loadDashboard();
+    }, 0);
 
-    const timer = window.setInterval(
+    const refreshTimer = window.setInterval(
       loadDashboard,
       refreshInterval
     );
 
     return () => {
-      window.clearInterval(timer);
+      window.clearTimeout(initialLoadTimer);
+      window.clearInterval(refreshTimer);
     };
   }, [loadDashboard, refreshInterval]);
 
