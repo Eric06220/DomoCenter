@@ -5,7 +5,12 @@ function createDashboardService({
   entityConfiguration,
   buildClimateData,
   buildOpeningData,
+  buildWaterLeakData,
+  buildSmokeData,
   buildEnergyData,
+  buildLightingData,
+  buildCameraData,
+  buildBatteryData,
   buildInfrastructureData,
   buildServicesStatus,
   findEntity,
@@ -24,14 +29,18 @@ function createDashboardService({
     const timestamps = entities
       .map((entity) => entity.last_updated)
       .filter(Boolean)
-      .map((timestamp) => new Date(timestamp).getTime())
+      .map((timestamp) =>
+        new Date(timestamp).getTime()
+      )
       .filter(Number.isFinite);
 
     if (timestamps.length === 0) {
       return null;
     }
 
-    return new Date(Math.max(...timestamps)).toISOString();
+    return new Date(
+      Math.max(...timestamps)
+    ).toISOString();
   }
 
   function countUnavailableEntities(entities) {
@@ -50,57 +59,93 @@ function createDashboardService({
   }
 
   async function createDashboardData() {
-    const entities = await homeAssistantService.getEntities();
-    const generatedAt = new Date().toISOString();
-    const latestUpdate = getLatestUpdateTimestamp(entities);
+    const entities =
+      await homeAssistantService.getEntities();
 
-    
+    const generatedAt =
+      new Date().toISOString();
+
+    const latestUpdate =
+      getLatestUpdateTimestamp(entities);
+
+    const climateZones = buildClimateData(
+      entityConfiguration,
+      entities,
+      readNumericEntity
+    );
+
+    const openings = buildOpeningData(
+      entityConfiguration,
+      entities,
+      findEntity,
+      isEntityAvailable
+    );
+
+    const waterLeaks = buildWaterLeakData(
+      entityConfiguration,
+      entities,
+      findEntity,
+      isEntityAvailable
+    );
+
+    const smoke = buildSmokeData(
+      entityConfiguration,
+      entities,
+      findEntity,
+      isEntityAvailable
+    );
+
     return {
       system: {
-        
         domoCenter: {
           version: packageJson.version,
-          uptimeSeconds: Math.floor(process.uptime()),
+          uptimeSeconds:
+            Math.floor(process.uptime()),
           startedAt: new Date(
-            Date.now() - process.uptime() * 1000
+            Date.now() -
+              process.uptime() * 1000
           ).toISOString(),
         },
-        
+
         homeAssistant: {
           connected: true,
           url: homeAssistantUrl,
           entityCount: entities.length,
           unavailableEntityCount:
-            countUnavailableEntities(entities),
+            countUnavailableEntities(
+              entities
+            ),
         },
 
         tuya: {
           connected: true,
-          latestDataUpdate: latestUpdate,
+          latestDataUpdate:
+            latestUpdate,
         },
 
         cache: {
           generatedAt,
-          durationSeconds: cacheDurationMs / 1000,
+          durationSeconds:
+            cacheDurationMs / 1000,
         },
       },
 
       climate: {
-        zones: buildClimateData(
-          entityConfiguration,
-          entities,
-          readNumericEntity
-        ),
+        zones: climateZones,
       },
 
       security: {
-        openings: buildOpeningData(
-          entityConfiguration,
-          entities,
-          findEntity,
-          isEntityAvailable
-        ),
+        openings,
+        waterLeaks,
+        smoke,
       },
+
+      batteries: buildBatteryData({
+        climateZones,
+        openings,
+        waterLeaks,
+        smoke,
+      }),
 
       energy: buildEnergyData(
         entityConfiguration,
@@ -109,32 +154,60 @@ function createDashboardService({
         readSwitchEntity
       ),
 
-      infrastructure: buildInfrastructureData(
-        entityConfiguration.infrastructure,
+      lighting: buildLightingData({
+        lightingDevices:
+          entityConfiguration
+            .lightingDevices ?? [],
         entities,
-        readNumericEntity
-      ),
+        findEntity,
+        isEntityAvailable,
+      }),
+
+      cameras: buildCameraData({
+        cameraDevices:
+          entityConfiguration
+            .cameraDevices ?? [],
+        entities,
+        findEntity,
+        isEntityAvailable,
+      }),
+
+      infrastructure:
+        buildInfrastructureData(
+          entityConfiguration.infrastructure,
+          entities,
+          readNumericEntity
+        ),
 
       services: buildServicesStatus({
         homeAssistantConnected: true,
-        tuyaLatestUpdate: latestUpdate,
+        tuyaLatestUpdate:
+          latestUpdate,
         generatedAt,
       }),
     };
   }
 
-  async function getDashboardData(forceRefresh = false) {
+  async function getDashboardData(
+    forceRefresh = false
+  ) {
     const now = Date.now();
 
     const cacheIsValid =
       cache.data !== null &&
-      now - cache.createdAt < cacheDurationMs;
+      now - cache.createdAt <
+        cacheDurationMs;
 
-    if (!forceRefresh && cacheIsValid) {
+    if (
+      !forceRefresh &&
+      cacheIsValid
+    ) {
       return {
         ...cache.data,
+
         system: {
           ...cache.data.system,
+
           cache: {
             ...cache.data.system.cache,
             fromCache: true,
@@ -143,7 +216,8 @@ function createDashboardService({
       };
     }
 
-    const data = await createDashboardData();
+    const data =
+      await createDashboardData();
 
     cache = {
       data,
@@ -152,8 +226,10 @@ function createDashboardService({
 
     return {
       ...data,
+
       system: {
         ...data.system,
+
         cache: {
           ...data.system.cache,
           fromCache: false,

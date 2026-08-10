@@ -18,156 +18,189 @@ import ElectricMeterRoundedIcon from "@mui/icons-material/ElectricMeterRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
-const energyDevices = [
-  {
-    id: "ecs-maison",
-    name: "ECS Maison",
-    type: "Disjoncteur intelligent Tuya",
-    category: "ECS",
-    power: 1850,
-    voltage: 231,
-    current: 8,
-    energyToday: 4.6,
-    active: true,
-  },
-  {
-    id: "ecs-studio",
-    name: "ECS Studio",
-    type: "Disjoncteur intelligent Tuya",
-    category: "ECS",
-    power: 0,
-    voltage: 230,
-    current: 0,
-    energyToday: 2.1,
-    active: false,
-  },
-  {
-    id: "pompe-piscine",
-    name: "Pompe piscine",
-    type: "Disjoncteur intelligent Tuya",
-    category: "Piscine",
-    power: 920,
-    voltage: 232,
-    current: 4,
-    energyToday: 5.8,
-    active: true,
-  },
-  {
-    id: "hp-piscine",
-    name: "HP Piscine",
-    type: "Prise Tuya avec mesure",
-    category: "Prise",
-    power: 640,
-    voltage: 231,
-    current: 2.8,
-    energyToday: 3.4,
-    active: true,
-  },
-  {
-    id: "lampe-piscine",
-    name: "Lampe piscine",
-    type: "Prise Tuya avec mesure",
-    category: "Prise",
-    power: 0,
-    voltage: 230,
-    current: 0,
-    energyToday: 0.7,
-    active: false,
-  },
-];
+import useHomeAssistant from "../hooks/useHomeAssistant";
 
 function formatPower(watts) {
+  if (!Number.isFinite(watts)) {
+    return "--";
+  }
+
   if (watts >= 1000) {
     return `${(watts / 1000).toFixed(2)} kW`;
   }
 
-  return `${watts} W`;
+  return `${watts.toFixed(1)} W`;
 }
 
-function getDeviceIcon(category) {
-  switch (category) {
-    case "ECS":
-      return <WaterDropRoundedIcon />;
-
-    case "Piscine":
-      return <PoolRoundedIcon />;
-
-    case "Prise":
-      return <PowerRoundedIcon />;
-
-    default:
-      return <BoltRoundedIcon />;
+function formatValue(metric, decimals = 1) {
+  if (!metric?.available || !Number.isFinite(metric.value)) {
+    return "--";
   }
+
+  return `${metric.value.toFixed(decimals)} ${metric.unit ?? ""}`.trim();
+}
+
+function getDeviceIcon(device) {
+  if (device.id?.includes("ecs")) {
+    return <WaterDropRoundedIcon />;
+  }
+
+  if (device.id === "pompe-piscine") {
+    return <PoolRoundedIcon />;
+  }
+
+  return <PowerRoundedIcon />;
 }
 
 function EnergyPage() {
-  const totalPower = energyDevices.reduce(
-    (total, device) => total + device.power,
-    0
-  );
+  const {
+    dashboard,
+    loading,
+    error,
+  } = useHomeAssistant(10000);
 
-  const totalEnergyToday = energyDevices.reduce(
-    (total, device) => total + device.energyToday,
-    0
-  );
+  const energy =
+    dashboard?.energy ?? null;
 
-  const activeDevices = energyDevices.filter(
-    (device) => device.active
-  ).length;
+  const devices =
+    energy?.devices ?? [];
+
+  const totalDevices =
+    energy?.totalDevices ?? 0;
+
+  const activeDevices =
+    energy?.activeDevices ?? 0;
+
+  const unavailableDevices =
+    energy?.unavailableDevices ?? 0;
+
+  const totalPower =
+    energy?.totalPowerWatts ?? 0;
+
+  const totalEnergy =
+    energy?.totalEnergyKwh ?? 0;
 
   const powerLimit = 6000;
 
-  const powerPercentage = Math.min(
-    (totalPower / powerLimit) * 100,
-    100
-  );
+  const powerPercentage =
+    Math.min(
+      (totalPower / powerLimit) * 100,
+      100
+    );
 
-  const highConsumption = totalPower > 4500;
+  const highConsumption =
+    totalPower > 4500;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box
+      sx={{
+        p: {
+          xs: 2,
+          md: 3,
+        },
+      }}
+    >
       <Stack spacing={3}>
         <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "flex-start", sm: "center" }}
+          direction={{
+            xs: "column",
+            sm: "row",
+          }}
+          alignItems={{
+            xs: "flex-start",
+            sm: "center",
+          }}
           justifyContent="space-between"
           spacing={2}
         >
           <Box>
-            <Typography variant="h4" fontWeight={800}>
+            <Typography
+              variant="h4"
+              fontWeight={800}
+            >
               Énergie
             </Typography>
 
-            <Typography variant="body1" color="text.secondary">
-              Suivi de la consommation électrique des équipements Tuya
+            <Typography
+              variant="body1"
+              color="text.secondary"
+            >
+              Suivi réel de la consommation électrique
             </Typography>
           </Box>
 
-          <Chip
-            icon={
-              highConsumption ? (
-                <WarningAmberRoundedIcon />
-              ) : (
-                <CheckCircleRoundedIcon />
-              )
-            }
-            label={
-              highConsumption
-                ? "Consommation élevée"
-                : "Consommation normale"
-            }
-            color={highConsumption ? "warning" : "success"}
-            variant="outlined"
-          />
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            useFlexGap
+          >
+            <Chip
+              icon={
+                highConsumption ? (
+                  <WarningAmberRoundedIcon />
+                ) : (
+                  <CheckCircleRoundedIcon />
+                )
+              }
+              label={
+                highConsumption
+                  ? "Consommation élevée"
+                  : "Consommation normale"
+              }
+              color={
+                highConsumption
+                  ? "warning"
+                  : "success"
+              }
+              variant="outlined"
+            />
+
+            {unavailableDevices > 0 && (
+              <Chip
+                label={`${unavailableDevices} indisponible${
+                  unavailableDevices > 1
+                    ? "s"
+                    : ""
+                }`}
+                color="warning"
+                variant="outlined"
+              />
+            )}
+          </Stack>
         </Stack>
 
-        <Alert severity={highConsumption ? "warning" : "success"}>
-          La consommation instantanée simulée est de{" "}
-          <strong>{formatPower(totalPower)}</strong>.
-        </Alert>
+        {error && (
+          <Alert severity="error">
+            Impossible de récupérer les données énergie : {error}
+          </Alert>
+        )}
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
+        {!error && !loading && (
+          <Alert
+            severity={
+              highConsumption
+                ? "warning"
+                : "success"
+            }
+          >
+            La consommation instantanée réelle est de{" "}
+            <strong>
+              {formatPower(totalPower)}
+            </strong>.
+          </Alert>
+        )}
+
+        <Grid
+          container
+          spacing={2}
+        >
+          <Grid
+            size={{
+              xs: 12,
+              md: 4,
+            }}
+          >
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
@@ -194,7 +227,10 @@ function EnergyPage() {
                       Consommation actuelle
                     </Typography>
 
-                    <Typography variant="h4" fontWeight={800}>
+                    <Typography
+                      variant="h4"
+                      fontWeight={800}
+                    >
                       {formatPower(totalPower)}
                     </Typography>
                   </Box>
@@ -203,15 +239,22 @@ function EnergyPage() {
                     <LinearProgress
                       variant="determinate"
                       value={powerPercentage}
-                      color={highConsumption ? "warning" : "primary"}
+                      color={
+                        highConsumption
+                          ? "warning"
+                          : "primary"
+                      }
                       sx={{
                         height: 8,
                         borderRadius: 999,
                       }}
                     />
 
-                    <Typography variant="caption" color="text.secondary">
-                      {totalPower} W sur une limite simulée de {powerLimit} W
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {formatPower(totalPower)} sur une référence de 6 kW
                     </Typography>
                   </Stack>
                 </Stack>
@@ -219,7 +262,13 @@ function EnergyPage() {
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+            }}
+          >
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
@@ -243,15 +292,23 @@ function EnergyPage() {
                       color="text.secondary"
                       fontWeight={700}
                     >
-                      Énergie aujourd’hui
+                      Énergie totale
                     </Typography>
 
-                    <Typography variant="h4" fontWeight={800}>
-                      {totalEnergyToday.toFixed(1)} kWh
+                    <Typography
+                      variant="h4"
+                      fontWeight={800}
+                    >
+                      {Number.isFinite(totalEnergy)
+                        ? `${totalEnergy.toFixed(3)} kWh`
+                        : "--"}
                     </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
-                      Total simulé des cinq équipements
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Somme des compteurs disponibles
                     </Typography>
                   </Box>
                 </Stack>
@@ -259,7 +316,13 @@ function EnergyPage() {
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+            }}
+          >
             <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
@@ -286,12 +349,18 @@ function EnergyPage() {
                       Équipements actifs
                     </Typography>
 
-                    <Typography variant="h4" fontWeight={800}>
-                      {activeDevices} / {energyDevices.length}
+                    <Typography
+                      variant="h4"
+                      fontWeight={800}
+                    >
+                      {activeDevices} / {totalDevices}
                     </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
-                      Disjoncteurs et prises en fonctionnement
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Disjoncteurs actuellement activés
                     </Typography>
                   </Box>
                 </Stack>
@@ -301,7 +370,11 @@ function EnergyPage() {
         </Grid>
 
         <Box>
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 0.5 }}>
+          <Typography
+            variant="h5"
+            fontWeight={800}
+            sx={{ mb: 0.5 }}
+          >
             Détail des équipements
           </Typography>
 
@@ -310,103 +383,188 @@ function EnergyPage() {
             color="text.secondary"
             sx={{ mb: 2 }}
           >
-            Puissance, tension, intensité et consommation du jour
+            Puissance, tension, intensité et énergie totale
           </Typography>
 
-          <Grid container spacing={2}>
-            {energyDevices.map((device) => (
-              <Grid key={device.id} size={{ xs: 12, sm: 6, lg: 4 }}>
-                <Card
-                  sx={{
-                    height: "100%",
-                    borderColor: device.active
-                      ? "primary.light"
-                      : "divider",
-                    bgcolor: device.active
-                      ? "rgba(37, 99, 235, 0.035)"
-                      : "background.paper",
-                  }}
-                >
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2.25}>
-                      <Stack
-                        direction="row"
-                        alignItems="flex-start"
-                        justifyContent="space-between"
-                        spacing={2}
+          <Grid
+            container
+            spacing={2}
+          >
+            {devices.map(
+              (device) => {
+                const active =
+                  device.switch?.available &&
+                  device.switch?.isOn === true;
+
+                return (
+                  <Grid
+                    key={device.id}
+                    size={{
+                      xs: 12,
+                      sm: 6,
+                      lg: 4,
+                    }}
+                  >
+                    <Card
+                      sx={{
+                        height: "100%",
+
+                        borderColor:
+                          active
+                            ? "primary.light"
+                            : "divider",
+
+                        bgcolor:
+                          active
+                            ? "rgba(37, 99, 235, 0.035)"
+                            : "background.paper",
+
+                        opacity:
+                          device.available
+                            ? 1
+                            : 0.65,
+                      }}
+                    >
+                      <CardContent
+                        sx={{ p: 2.5 }}
                       >
-                        <Box
-                          sx={{
-                            width: 50,
-                            height: 50,
-                            display: "grid",
-                            placeItems: "center",
-                            borderRadius: 3,
-                            bgcolor: device.active
-                              ? "primary.main"
-                              : "action.hover",
-                            color: device.active
-                              ? "primary.contrastText"
-                              : "text.secondary",
-                          }}
-                        >
-                          {getDeviceIcon(device.category)}
-                        </Box>
+                        <Stack spacing={2.25}>
+                          <Stack
+                            direction="row"
+                            alignItems="flex-start"
+                            justifyContent="space-between"
+                            spacing={2}
+                          >
+                            <Box
+                              sx={{
+                                width: 50,
+                                height: 50,
+                                display: "grid",
+                                placeItems: "center",
+                                borderRadius: 3,
 
-                        <Chip
-                          label={device.active ? "Actif" : "Inactif"}
-                          color={device.active ? "success" : "default"}
-                          size="small"
-                          variant={device.active ? "filled" : "outlined"}
-                        />
-                      </Stack>
+                                bgcolor:
+                                  active
+                                    ? "primary.main"
+                                    : "action.hover",
 
-                      <Box>
-                        <Typography variant="h6" fontWeight={800}>
-                          {device.name}
-                        </Typography>
+                                color:
+                                  active
+                                    ? "primary.contrastText"
+                                    : "text.secondary",
+                              }}
+                            >
+                              {getDeviceIcon(
+                                device
+                              )}
+                            </Box>
 
-                        <Typography variant="body2" color="text.secondary">
-                          {device.type}
-                        </Typography>
-                      </Box>
+                            <Chip
+                              label={
+                                !device.available
+                                  ? "Indisponible"
+                                  : active
+                                  ? "Actif"
+                                  : "Inactif"
+                              }
+                              color={
+                                !device.available
+                                  ? "warning"
+                                  : active
+                                  ? "success"
+                                  : "default"
+                              }
+                              size="small"
+                              variant={
+                                active
+                                  ? "filled"
+                                  : "outlined"
+                              }
+                            />
+                          </Stack>
 
-                      <Box>
-                        <Typography variant="h5" fontWeight={800}>
-                          {formatPower(device.power)}
-                        </Typography>
+                          <Box>
+                            <Typography
+                              variant="h6"
+                              fontWeight={800}
+                            >
+                              {device.name}
+                            </Typography>
 
-                        <Typography variant="body2" color="text.secondary">
-                          {device.voltage} V · {device.current} A
-                        </Typography>
-                      </Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              {device.location}
+                            </Typography>
+                          </Box>
 
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 2.5,
-                          bgcolor: "action.hover",
-                        }}
-                      >
-                        <Typography variant="caption" color="text.secondary">
-                          Consommation aujourd’hui
-                        </Typography>
+                          <Box>
+                            <Typography
+                              variant="h5"
+                              fontWeight={800}
+                            >
+                              {formatValue(
+                                device.power,
+                                1
+                              )}
+                            </Typography>
 
-                        <Typography variant="body1" fontWeight={800}>
-                          {device.energyToday.toFixed(1)} kWh
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              {formatValue(
+                                device.voltage,
+                                1
+                              )}{" "}
+                              ·{" "}
+                              {formatValue(
+                                device.current,
+                                2
+                              )}
+                            </Typography>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 2.5,
+                              bgcolor: "action.hover",
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Énergie totale
+                            </Typography>
+
+                            <Typography
+                              variant="body1"
+                              fontWeight={800}
+                            >
+                              {formatValue(
+                                device.totalEnergy,
+                                3
+                              )}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              }
+            )}
           </Grid>
         </Box>
 
-        <Typography variant="body2" color="text.secondary">
-          Les mesures sont encore simulées. Elles seront remplacées par les
-          vraies données de consommation provenant de Home Assistant.
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
+          Les mesures affichées proviennent directement de Home Assistant.
         </Typography>
       </Stack>
     </Box>
