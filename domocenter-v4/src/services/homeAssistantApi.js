@@ -1,6 +1,10 @@
-const API_URL = "http://192.168.1.120:3001";
+const API_URL =
+  "http://192.168.1.120:3001";
 
-async function fetchJson(path, options = {}) {
+async function fetchJson(
+  path,
+  options = {}
+) {
   const response = await fetch(
     `${API_URL}${path}`,
     options
@@ -54,6 +58,25 @@ export async function setLightingDeviceState(
 ) {
   return fetchJson(
     `/api/lighting/${deviceId}/switch`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        isOn,
+      }),
+    }
+  );
+}
+
+export async function setEnergyDeviceState(
+  deviceId,
+  isOn
+) {
+  return fetchJson(
+    `/api/energy/${deviceId}/switch`,
     {
       method: "POST",
       headers: {
@@ -186,6 +209,7 @@ export async function setClimateSwingMode(
     }
   );
 }
+
 export async function getShuttersData() {
   return fetchJson(
     "/api/access"

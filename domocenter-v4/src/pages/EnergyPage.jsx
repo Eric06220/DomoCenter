@@ -1,12 +1,16 @@
+import { useMemo, useState } from "react";
+
 import {
   Alert,
   Box,
   Card,
   CardContent,
   Chip,
+  Divider,
   Grid,
   LinearProgress,
   Stack,
+  Switch,
   Typography,
 } from "@mui/material";
 
@@ -19,6 +23,10 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import useHomeAssistant from "../hooks/useHomeAssistant";
+
+import {
+  setEnergyDeviceState,
+} from "../services/homeAssistantApi";
 
 function formatPower(watts) {
   if (!Number.isFinite(watts)) {
@@ -55,21 +63,58 @@ function getDeviceIcon(device) {
 function EnergyPage() {
   const {
     dashboard,
-    loading,
+    refreshing,
     error,
+    refreshDashboard,
   } = useHomeAssistant(10000);
+
+  const [commandingDeviceId, setCommandingDeviceId] =
+    useState(null);
+
+  const [commandError, setCommandError] =
+    useState("");
+
+  const [optimisticStates, setOptimisticStates] =
+    useState({});
 
   const energy =
     dashboard?.energy ?? null;
 
-  const devices =
+  const backendDevices =
     energy?.devices ?? [];
+
+  const devices = useMemo(
+    () =>
+      backendDevices.map((device) => {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            optimisticStates,
+            device.id
+          )
+        ) {
+          return {
+            ...device,
+            switch: {
+              ...(device.switch ?? {}),
+              isOn: optimisticStates[device.id],
+            },
+          };
+        }
+
+        return device;
+      }),
+    [backendDevices, optimisticStates]
+  );
 
   const totalDevices =
     energy?.totalDevices ?? 0;
 
   const activeDevices =
-    energy?.activeDevices ?? 0;
+    devices.filter(
+      (device) =>
+        device.switch?.available &&
+        device.switch?.isOn === true
+    ).length;
 
   const unavailableDevices =
     energy?.unavailableDevices ?? 0;
@@ -91,6 +136,63 @@ function EnergyPage() {
   const highConsumption =
     totalPower > 4500;
 
+  async function handleToggle(device) {
+    const switchAvailable =
+      device.switch?.available === true;
+
+    if (
+      !switchAvailable ||
+      commandingDeviceId ||
+      refreshing
+    ) {
+      return;
+    }
+
+    const requestedState =
+      !device.switch?.isOn;
+
+    setCommandError("");
+    setCommandingDeviceId(device.id);
+
+    setOptimisticStates((current) => ({
+      ...current,
+      [device.id]: requestedState,
+    }));
+
+    try {
+      await setEnergyDeviceState(
+        device.id,
+        requestedState
+      );
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1200);
+      });
+
+      await refreshDashboard();
+
+      setOptimisticStates((current) => {
+        const next = { ...current };
+        delete next[device.id];
+        return next;
+      });
+    } catch (commandFailure) {
+      setOptimisticStates((current) => {
+        const next = { ...current };
+        delete next[device.id];
+        return next;
+      });
+
+      setCommandError(
+        commandFailure instanceof Error
+          ? commandFailure.message
+          : "Impossible de commander cet équipement."
+      );
+    } finally {
+      setCommandingDeviceId(null);
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -100,7 +202,7 @@ function EnergyPage() {
         },
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <Stack
           direction={{
             xs: "column",
@@ -111,7 +213,7 @@ function EnergyPage() {
             sm: "center",
           }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={1.25}
         >
           <Box>
             <Typography
@@ -125,7 +227,7 @@ function EnergyPage() {
               variant="body1"
               color="text.secondary"
             >
-              Suivi réel de la consommation électrique
+              Suivi et commande des équipements
             </Typography>
           </Box>
 
@@ -153,17 +255,17 @@ function EnergyPage() {
                   ? "warning"
                   : "success"
               }
+              size="small"
               variant="outlined"
             />
 
             {unavailableDevices > 0 && (
               <Chip
                 label={`${unavailableDevices} indisponible${
-                  unavailableDevices > 1
-                    ? "s"
-                    : ""
+                  unavailableDevices > 1 ? "s" : ""
                 }`}
                 color="warning"
+                size="small"
                 variant="outlined"
               />
             )}
@@ -176,396 +278,372 @@ function EnergyPage() {
           </Alert>
         )}
 
-        {!error && !loading && (
+        {commandError && (
           <Alert
-            severity={
-              highConsumption
-                ? "warning"
-                : "success"
+            severity="error"
+            onClose={() =>
+              setCommandError("")
             }
           >
-            La consommation instantanée réelle est de{" "}
-            <strong>
-              {formatPower(totalPower)}
-            </strong>.
+            {commandError}
           </Alert>
         )}
 
-        <Grid
-          container
-          spacing={2}
-        >
-          <Grid
-            size={{
-              xs: 12,
-              md: 4,
+        <Card>
+          <CardContent
+            sx={{
+              p: 1.25,
+              "&:last-child": {
+                pb: 1.25,
+              },
             }}
           >
-            <Card sx={{ height: "100%" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={2}>
-                  <Box
+            <Grid
+              container
+              spacing={0.75}
+              alignItems="center"
+            >
+              <Grid size={{ xs: 4 }}>
+                <Stack
+                  alignItems="center"
+                  spacing={0}
+                >
+                  <BoltRoundedIcon
                     sx={{
-                      width: 50,
-                      height: 50,
-                      display: "grid",
-                      placeItems: "center",
-                      borderRadius: 3,
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
+                      fontSize: 20,
+                      color: highConsumption
+                        ? "warning.main"
+                        : "primary.main",
                     }}
+                  />
+
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={800}
+                    noWrap
                   >
-                    <BoltRoundedIcon />
-                  </Box>
+                    {formatPower(totalPower)}
+                  </Typography>
 
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      fontWeight={700}
-                    >
-                      Consommation actuelle
-                    </Typography>
-
-                    <Typography
-                      variant="h4"
-                      fontWeight={800}
-                    >
-                      {formatPower(totalPower)}
-                    </Typography>
-                  </Box>
-
-                  <Stack spacing={0.75}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={powerPercentage}
-                      color={
-                        highConsumption
-                          ? "warning"
-                          : "primary"
-                      }
-                      sx={{
-                        height: 8,
-                        borderRadius: 999,
-                      }}
-                    />
-
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      {formatPower(totalPower)} sur une référence de 6 kW
-                    </Typography>
-                  </Stack>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Actuelle
+                  </Typography>
                 </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+              </Grid>
 
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-            }}
-          >
-            <Card sx={{ height: "100%" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={2}>
-                  <Box
+              <Grid size={{ xs: 4 }}>
+                <Stack
+                  alignItems="center"
+                  spacing={0}
+                >
+                  <ElectricMeterRoundedIcon
                     sx={{
-                      width: 50,
-                      height: 50,
-                      display: "grid",
-                      placeItems: "center",
-                      borderRadius: 3,
-                      bgcolor: "secondary.main",
-                      color: "white",
+                      fontSize: 20,
+                      color: "secondary.main",
                     }}
+                  />
+
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={800}
+                    noWrap
                   >
-                    <ElectricMeterRoundedIcon />
-                  </Box>
+                    {Number.isFinite(totalEnergy)
+                      ? `${totalEnergy.toFixed(2)} kWh`
+                      : "--"}
+                  </Typography>
 
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      fontWeight={700}
-                    >
-                      Énergie totale
-                    </Typography>
-
-                    <Typography
-                      variant="h4"
-                      fontWeight={800}
-                    >
-                      {Number.isFinite(totalEnergy)
-                        ? `${totalEnergy.toFixed(3)} kWh`
-                        : "--"}
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Somme des compteurs disponibles
-                    </Typography>
-                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Énergie
+                  </Typography>
                 </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
+              </Grid>
 
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-            }}
-          >
-            <Card sx={{ height: "100%" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={2}>
-                  <Box
+              <Grid size={{ xs: 4 }}>
+                <Stack
+                  alignItems="center"
+                  spacing={0}
+                >
+                  <PowerRoundedIcon
                     sx={{
-                      width: 50,
-                      height: 50,
-                      display: "grid",
-                      placeItems: "center",
-                      borderRadius: 3,
-                      bgcolor: "success.main",
-                      color: "white",
+                      fontSize: 20,
+                      color: "success.main",
                     }}
+                  />
+
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={800}
+                    noWrap
                   >
-                    <PowerRoundedIcon />
-                  </Box>
+                    {activeDevices} / {totalDevices}
+                  </Typography>
 
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      fontWeight={700}
-                    >
-                      Équipements actifs
-                    </Typography>
-
-                    <Typography
-                      variant="h4"
-                      fontWeight={800}
-                    >
-                      {activeDevices} / {totalDevices}
-                    </Typography>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Disjoncteurs actuellement activés
-                    </Typography>
-                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Actifs
+                  </Typography>
                 </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+              </Grid>
+            </Grid>
+
+            <LinearProgress
+              variant="determinate"
+              value={powerPercentage}
+              color={
+                highConsumption
+                  ? "warning"
+                  : "primary"
+              }
+              sx={{
+                mt: 1,
+                height: 5,
+                borderRadius: 999,
+              }}
+            />
+          </CardContent>
+        </Card>
 
         <Box>
           <Typography
             variant="h5"
             fontWeight={800}
-            sx={{ mb: 0.5 }}
+            sx={{ mb: 0.25 }}
           >
-            Détail des équipements
+            Équipements
           </Typography>
 
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ mb: 2 }}
+            sx={{ mb: 1 }}
           >
-            Puissance, tension, intensité et énergie totale
+            Mesures réelles et mise en / hors service
           </Typography>
 
-          <Grid
-            container
-            spacing={2}
-          >
-            {devices.map(
-              (device) => {
-                const active =
-                  device.switch?.available &&
-                  device.switch?.isOn === true;
+          <Stack spacing={0.75}>
+            {devices.map((device) => {
+              const active =
+                device.switch?.available &&
+                device.switch?.isOn === true;
 
-                return (
-                  <Grid
-                    key={device.id}
-                    size={{
-                      xs: 12,
-                      sm: 6,
-                      lg: 4,
+              const switchAvailable =
+                device.switch?.available === true;
+
+              const commanding =
+                commandingDeviceId ===
+                device.id;
+
+              return (
+                <Card
+                  key={device.id}
+                  sx={{
+                    borderColor:
+                      active
+                        ? "primary.light"
+                        : "divider",
+
+                    bgcolor:
+                      active
+                        ? "rgba(37, 99, 235, 0.035)"
+                        : "background.paper",
+
+                    opacity:
+                      device.available
+                        ? 1
+                        : 0.65,
+                  }}
+                >
+                  <CardContent
+                    sx={{
+                      p: 0.9,
+                      "&:last-child": {
+                        pb: 0.9,
+                      },
                     }}
                   >
-                    <Card
-                      sx={{
-                        height: "100%",
-
-                        borderColor:
-                          active
-                            ? "primary.light"
-                            : "divider",
-
-                        bgcolor:
-                          active
-                            ? "rgba(37, 99, 235, 0.035)"
-                            : "background.paper",
-
-                        opacity:
-                          device.available
-                            ? 1
-                            : 0.65,
-                      }}
-                    >
-                      <CardContent
-                        sx={{ p: 2.5 }}
+                    <Stack spacing={0.5}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
                       >
-                        <Stack spacing={2.25}>
-                          <Stack
-                            direction="row"
-                            alignItems="flex-start"
-                            justifyContent="space-between"
-                            spacing={2}
-                          >
-                            <Box
-                              sx={{
-                                width: 50,
-                                height: 50,
-                                display: "grid",
-                                placeItems: "center",
-                                borderRadius: 3,
+                        <Box
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            flexShrink: 0,
+                            display: "grid",
+                            placeItems: "center",
+                            borderRadius: 2,
+                            bgcolor:
+                              active
+                                ? "primary.main"
+                                : "action.hover",
+                            color:
+                              active
+                                ? "primary.contrastText"
+                                : "text.secondary",
+                            "& svg": {
+                              fontSize: 19,
+                            },
+                          }}
+                        >
+                          {getDeviceIcon(device)}
+                        </Box>
 
-                                bgcolor:
-                                  active
-                                    ? "primary.main"
-                                    : "action.hover",
-
-                                color:
-                                  active
-                                    ? "primary.contrastText"
-                                    : "text.secondary",
-                              }}
-                            >
-                              {getDeviceIcon(
-                                device
-                              )}
-                            </Box>
-
-                            <Chip
-                              label={
-                                !device.available
-                                  ? "Indisponible"
-                                  : active
-                                  ? "Actif"
-                                  : "Inactif"
-                              }
-                              color={
-                                !device.available
-                                  ? "warning"
-                                  : active
-                                  ? "success"
-                                  : "default"
-                              }
-                              size="small"
-                              variant={
-                                active
-                                  ? "filled"
-                                  : "outlined"
-                              }
-                            />
-                          </Stack>
-
-                          <Box>
-                            <Typography
-                              variant="h6"
-                              fontWeight={800}
-                            >
-                              {device.name}
-                            </Typography>
-
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              {device.location}
-                            </Typography>
-                          </Box>
-
-                          <Box>
-                            <Typography
-                              variant="h5"
-                              fontWeight={800}
-                            >
-                              {formatValue(
-                                device.power,
-                                1
-                              )}
-                            </Typography>
-
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              {formatValue(
-                                device.voltage,
-                                1
-                              )}{" "}
-                              ·{" "}
-                              {formatValue(
-                                device.current,
-                                2
-                              )}
-                            </Typography>
-                          </Box>
-
-                          <Box
+                        <Box
+                          sx={{
+                            flexGrow: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            noWrap
                             sx={{
-                              p: 1.5,
-                              borderRadius: 2.5,
-                              bgcolor: "action.hover",
+                              fontWeight: "900 !important",
                             }}
                           >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              Énergie totale
-                            </Typography>
+                            {device.name}
+                          </Typography>
 
-                            <Typography
-                              variant="body1"
-                              fontWeight={800}
-                            >
-                              {formatValue(
-                                device.totalEnergy,
-                                3
-                              )}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                );
-              }
-            )}
-          </Grid>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            noWrap
+                          >
+                            {device.location}
+                          </Typography>
+                        </Box>
+
+                        <Switch
+                          size="small"
+                          checked={active}
+                          disabled={
+                            !switchAvailable ||
+                            commanding ||
+                            refreshing
+                          }
+                          onChange={() =>
+                            handleToggle(device)
+                          }
+                          inputProps={{
+                            "aria-label":
+                              `Mettre en ou hors service ${device.name}`,
+                          }}
+                          sx={{
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Stack>
+
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        spacing={1}
+                        sx={{
+                          pl: 5.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          fontWeight={800}
+                          noWrap
+                        >
+                          {formatValue(
+                            device.power,
+                            1
+                          )}
+                        </Typography>
+
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          {formatValue(
+                            device.voltage,
+                            0
+                          )}
+                          {" · "}
+                          {formatValue(
+                            device.current,
+                            2
+                          )}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+
+                    <Divider
+                      sx={{
+                        my: 0.5,
+                      }}
+                    />
+
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      spacing={1}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {formatValue(
+                          device.totalEnergy,
+                          3
+                        )}
+                      </Typography>
+
+                      <Chip
+                        label={
+                          commanding
+                            ? "Commande..."
+                            : !switchAvailable
+                            ? "Commande indisponible"
+                            : active
+                            ? "En service"
+                            : "Hors service"
+                        }
+                        color={
+                          !switchAvailable
+                            ? "warning"
+                            : active
+                            ? "success"
+                            : "default"
+                        }
+                        size="small"
+                        variant={
+                          active
+                            ? "filled"
+                            : "outlined"
+                        }
+                        sx={{
+                          height: 20,
+                          "& .MuiChip-label": {
+                            px: 0.75,
+                            fontSize: 11,
+                          },
+                        }}
+                      />
+                    </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Stack>
         </Box>
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-        >
-          Les mesures affichées proviennent directement de Home Assistant.
-        </Typography>
       </Stack>
     </Box>
   );
