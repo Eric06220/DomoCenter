@@ -186,3 +186,24 @@ export async function setClimateSwingMode(
     }
   );
 }
+export async function getShuttersData() {
+  return fetchJson(
+    "/api/access"
+  );
+}
+
+export async function triggerShutter(
+  deviceId,
+  action
+) {
+  return fetchJson(
+    `/api/access/${deviceId}/${action}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+    }
+  );
+}

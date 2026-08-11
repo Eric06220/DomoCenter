@@ -320,6 +320,32 @@ const devices = {
         "switch.portail_sonoff_1000ea498f",
       icon: "gate",
     },
+
+    {
+      id: "volet-chambre",
+      name: "Volet Chambre",
+      location: "Chambre",
+      actionType: "dual-pulse",
+      openEntityId:
+        "switch.volets_chambre_switch_1",
+      closeEntityId:
+        "switch.volets_chambre_switch_2",
+      pulseDurationMs: 700,
+      icon: "shutter",
+    },
+
+    {
+      id: "volet-sam",
+      name: "Volet SAM",
+      location: "Salle à manger",
+      actionType: "dual-pulse",
+      openEntityId:
+        "switch.volets_sam_switch_1",
+      closeEntityId:
+        "switch.volets_sam_switch_2",
+      pulseDurationMs: 700,
+      icon: "shutter",
+    },
   ],
 
   infrastructure: {

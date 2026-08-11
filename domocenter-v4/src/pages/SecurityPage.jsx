@@ -27,12 +27,16 @@ import GarageRoundedIcon from "@mui/icons-material/GarageRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
 import FenceRoundedIcon from "@mui/icons-material/FenceRounded";
 import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
+import BlindsRoundedIcon from "@mui/icons-material/BlindsRounded";
+import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 
 import useHomeAssistant from "../hooks/useHomeAssistant";
 
 import {
   getAccessData,
   triggerPortal,
+  triggerShutter,
 } from "../services/homeAssistantApi";
 
 function getLocationIcon(location) {
@@ -67,17 +71,31 @@ function SecurityPage() {
   const [portal, setPortal] =
     useState(null);
 
-  const [portalLoading, setPortalLoading] =
+  const [shutters, setShutters] =
+    useState([]);
+
+  const [accessLoading, setAccessLoading] =
     useState(true);
 
-  const [portalCommanding, setPortalCommanding] =
-    useState(false);
+  const [
+    portalCommanding,
+    setPortalCommanding,
+  ] = useState(false);
 
-  const [portalMessage, setPortalMessage] =
-    useState("");
+  const [
+    shutterCommandingId,
+    setShutterCommandingId,
+  ] = useState(null);
 
-  const [portalError, setPortalError] =
-    useState("");
+  const [
+    accessMessage,
+    setAccessMessage,
+  ] = useState("");
+
+  const [
+    accessError,
+    setAccessError,
+  ] = useState("");
 
   const openings =
     dashboard?.security?.openings ?? null;
@@ -112,9 +130,6 @@ function SecurityPage() {
   const smokeAlerts =
     smoke?.smokeAlert ?? 0;
 
-  const unavailableSmoke =
-    smoke?.unavailable ?? 0;
-
   const hasAlert =
     openSensors > 0 ||
     waterLeakAlerts > 0 ||
@@ -123,10 +138,10 @@ function SecurityPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPortal() {
+    async function loadAccess() {
       try {
-        setPortalLoading(true);
-        setPortalError("");
+        setAccessLoading(true);
+        setAccessError("");
 
         const accessData =
           await getAccessData();
@@ -135,28 +150,40 @@ function SecurityPage() {
           setPortal(
             accessData?.portal ?? null
           );
+
+          setShutters(
+            accessData?.shutters ?? []
+          );
         }
       } catch (caughtError) {
         if (!cancelled) {
-          setPortalError(
+          setAccessError(
             caughtError instanceof Error
               ? caughtError.message
-              : "Impossible de récupérer le portail."
+              : "Impossible de récupérer les commandes d'accès."
           );
         }
       } finally {
         if (!cancelled) {
-          setPortalLoading(false);
+          setAccessLoading(false);
         }
       }
     }
 
-    loadPortal();
+    loadAccess();
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function showAccessMessage(message) {
+    setAccessMessage(message);
+
+    window.setTimeout(() => {
+      setAccessMessage("");
+    }, 2500);
+  }
 
   async function handlePortalTrigger() {
     if (portalCommanding) {
@@ -165,26 +192,63 @@ function SecurityPage() {
 
     try {
       setPortalCommanding(true);
-      setPortalMessage("");
-      setPortalError("");
+      setAccessMessage("");
+      setAccessError("");
 
       await triggerPortal();
 
-      setPortalMessage(
+      showAccessMessage(
         "Commande portail envoyée."
       );
-
-      window.setTimeout(() => {
-        setPortalMessage("");
-      }, 2500);
     } catch (caughtError) {
-      setPortalError(
+      setAccessError(
         caughtError instanceof Error
           ? caughtError.message
           : "Impossible de commander le portail."
       );
     } finally {
       setPortalCommanding(false);
+    }
+  }
+
+  async function handleShutterCommand(
+    shutter,
+    action
+  ) {
+    if (shutterCommandingId) {
+      return;
+    }
+
+    try {
+      setShutterCommandingId(
+        shutter.id
+      );
+
+      setAccessMessage("");
+      setAccessError("");
+
+      await triggerShutter(
+        shutter.id,
+        action
+      );
+
+      showAccessMessage(
+        `${shutter.name} : commande ${
+          action === "open"
+            ? "d'ouverture"
+            : "de fermeture"
+        } envoyée.`
+      );
+    } catch (caughtError) {
+      setAccessError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Impossible de commander le volet."
+      );
+    } finally {
+      setShutterCommandingId(
+        null
+      );
     }
   }
 
@@ -223,7 +287,8 @@ function SecurityPage() {
               color="text.secondary"
             >
               Surveillance des ouvertures,
-              fuites d’eau et détecteurs de fumée
+              volets, fuites d’eau et détecteurs
+              de fumée
             </Typography>
           </Box>
 
@@ -273,6 +338,23 @@ function SecurityPage() {
           </Alert>
         )}
 
+        {accessError && (
+          <Alert
+            severity="error"
+            onClose={() =>
+              setAccessError("")
+            }
+          >
+            {accessError}
+          </Alert>
+        )}
+
+        {accessMessage && (
+          <Alert severity="success">
+            {accessMessage}
+          </Alert>
+        )}
+
         {/* PORTAIL */}
 
         <Box>
@@ -289,7 +371,8 @@ function SecurityPage() {
             color="text.secondary"
             sx={{ mb: 2 }}
           >
-            Commande ouverture / fermeture du portail
+            Commande ouverture / fermeture
+            du portail
           </Typography>
 
           <Card>
@@ -323,7 +406,8 @@ function SecurityPage() {
                       placeItems: "center",
                       borderRadius: 3,
                       bgcolor: "primary.main",
-                      color: "primary.contrastText",
+                      color:
+                        "primary.contrastText",
                     }}
                   >
                     <FenceRoundedIcon />
@@ -363,7 +447,7 @@ function SecurityPage() {
                     <TouchAppRoundedIcon />
                   }
                   disabled={
-                    portalLoading ||
+                    accessLoading ||
                     portalCommanding ||
                     portal?.available === false
                   }
@@ -379,34 +463,13 @@ function SecurityPage() {
                     fontWeight: 800,
                   }}
                 >
-                  {portalLoading
+                  {accessLoading
                     ? "Chargement..."
                     : portalCommanding
                     ? "Commande en cours..."
                     : "Commander le portail"}
                 </Button>
               </Stack>
-
-              {portalMessage && (
-                <Alert
-                  severity="success"
-                  sx={{ mt: 2 }}
-                >
-                  {portalMessage}
-                </Alert>
-              )}
-
-              {portalError && (
-                <Alert
-                  severity="error"
-                  sx={{ mt: 2 }}
-                  onClose={() =>
-                    setPortalError("")
-                  }
-                >
-                  {portalError}
-                </Alert>
-              )}
             </CardContent>
           </Card>
         </Box>
@@ -628,6 +691,180 @@ function SecurityPage() {
               )
             )}
           </Grid>
+        </Box>
+
+        {/* VOLETS */}
+
+        <Box>
+          <Typography
+            variant="h5"
+            fontWeight={800}
+            sx={{ mb: 0.5 }}
+          >
+            Volets
+          </Typography>
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            Commandes impulsionnelles
+            d’ouverture et de fermeture
+          </Typography>
+
+          {accessLoading ? (
+            <Alert severity="info">
+              Chargement des volets...
+            </Alert>
+          ) : shutters.length === 0 ? (
+            <Alert severity="warning">
+              Aucun volet configuré.
+            </Alert>
+          ) : (
+            <Grid
+              container
+              spacing={2}
+            >
+              {shutters.map(
+                (shutter) => {
+                  const commanding =
+                    shutterCommandingId ===
+                    shutter.id;
+
+                  return (
+                    <Grid
+                      key={shutter.id}
+                      size={{
+                        xs: 12,
+                        md: 6,
+                      }}
+                    >
+                      <Card>
+                        <CardContent
+                          sx={{
+                            p: 2.5,
+                          }}
+                        >
+                          <Stack
+                            spacing={2.5}
+                          >
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={2}
+                            >
+                              <Box
+                                sx={{
+                                  width: 52,
+                                  height: 52,
+                                  display:
+                                    "grid",
+                                  placeItems:
+                                    "center",
+                                  borderRadius:
+                                    3,
+                                  bgcolor:
+                                    "primary.main",
+                                  color:
+                                    "primary.contrastText",
+                                }}
+                              >
+                                <BlindsRoundedIcon />
+                              </Box>
+
+                              <Box>
+                                <Typography
+                                  variant="h6"
+                                  fontWeight={
+                                    800
+                                  }
+                                >
+                                  {
+                                    shutter.name
+                                  }
+                                </Typography>
+
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  {
+                                    shutter.location
+                                  }
+                                </Typography>
+                              </Box>
+                            </Stack>
+
+                            <Stack
+                              direction={{
+                                xs: "column",
+                                sm: "row",
+                              }}
+                              spacing={1.5}
+                            >
+                              <Button
+                                variant="contained"
+                                fullWidth
+                                startIcon={
+                                  <KeyboardArrowUpRoundedIcon />
+                                }
+                                disabled={
+                                  commanding
+                                }
+                                onClick={() =>
+                                  handleShutterCommand(
+                                    shutter,
+                                    "open"
+                                  )
+                                }
+                              >
+                                {commanding
+                                  ? "Commande..."
+                                  : "Ouvrir"}
+                              </Button>
+
+                              <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={
+                                  <KeyboardArrowDownRoundedIcon />
+                                }
+                                disabled={
+                                  commanding
+                                }
+                                onClick={() =>
+                                  handleShutterCommand(
+                                    shutter,
+                                    "close"
+                                  )
+                                }
+                              >
+                                {commanding
+                                  ? "Commande..."
+                                  : "Fermer"}
+                              </Button>
+                            </Stack>
+
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Aucun état ouvert /
+                              fermé n’est affiché :
+                              DomoCenter ne dispose
+                              pas de retour de
+                              position du volet.
+                            </Typography>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                }
+              )}
+            </Grid>
+          )}
         </Box>
 
         {/* FUITES D'EAU */}
