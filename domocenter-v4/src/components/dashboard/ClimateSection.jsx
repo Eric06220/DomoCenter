@@ -42,7 +42,7 @@ function ClimateSection({
             <Grid
               key={zone.id}
               size={{
-                xs: 12,
+                xs: 6,
                 md: 6,
               }}
             >
