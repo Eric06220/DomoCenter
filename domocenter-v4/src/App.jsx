@@ -1,4 +1,12 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import {
+  useState,
+} from "react";
+
+import {
+  NavLink,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import {
   AppBar,
@@ -8,6 +16,7 @@ import {
   CssBaseline,
   Divider,
   Drawer,
+  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
@@ -15,8 +24,11 @@ import {
   Stack,
   Toolbar,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
@@ -84,20 +96,24 @@ const menuItems = [
 ];
 
 function App() {
+  const theme = useTheme();
+
+  const isMobile =
+    useMediaQuery(
+      theme.breakpoints.down("md")
+    );
+
+  const [
+    mobileDrawerOpen,
+    setMobileDrawerOpen,
+  ] = useState(false);
+
   const {
     dashboard,
     loading,
     error,
   } = useHomeAssistant(10000);
 
-  /*
-   * Le voyant du bandeau utilise les données
-   * réelles retournées par le Dashboard.
-   *
-   * Pendant le premier chargement, on affiche
-   * "Connexion..." afin de ne pas annoncer
-   * prématurément que le système est connecté.
-   */
   const homeAssistantOnline =
     dashboard?.services
       ?.homeAssistant
@@ -107,6 +123,167 @@ function App() {
     !error &&
     homeAssistantOnline;
 
+  function closeMobileDrawer() {
+    if (isMobile) {
+      setMobileDrawerOpen(false);
+    }
+  }
+
+  const drawerContent = (
+    <Stack
+      sx={{
+        height: "100%",
+        py: 2,
+      }}
+    >
+      <Box
+        sx={{
+          px: 2,
+          mb: 1,
+        }}
+      >
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          fontWeight={800}
+          sx={{
+            letterSpacing: 1.2,
+          }}
+        >
+          Navigation
+        </Typography>
+      </Box>
+
+      <List
+        sx={{
+          px: 0.5,
+        }}
+      >
+        {menuItems.map(
+          (item) => (
+            <ListItemButton
+              key={item.path}
+              component={NavLink}
+              to={item.path}
+              end={
+                item.path === "/"
+              }
+              onClick={
+                closeMobileDrawer
+              }
+              sx={{
+                minHeight: 48,
+                color:
+                  "text.secondary",
+
+                "& .MuiListItemIcon-root":
+                  {
+                    color:
+                      "inherit",
+                  },
+
+                "&:hover": {
+                  bgcolor:
+                    "action.hover",
+
+                  color:
+                    "primary.main",
+                },
+
+                "&.active": {
+                  bgcolor:
+                    "primary.main",
+
+                  color:
+                    "primary.contrastText",
+
+                  boxShadow:
+                    "0 8px 18px rgba(37, 99, 235, 0.2)",
+
+                  "&:hover": {
+                    bgcolor:
+                      "primary.dark",
+                  },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 42,
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+
+              <ListItemText
+                primary={
+                  item.label
+                }
+                primaryTypographyProps={{
+                  fontWeight: 700,
+                }}
+              />
+            </ListItemButton>
+          )
+        )}
+      </List>
+
+      <Box
+        sx={{
+          flexGrow: 1,
+        }}
+      />
+
+      <Box
+        sx={{
+          px: 2,
+        }}
+      >
+        <Divider
+          sx={{
+            mb: 2,
+          }}
+        />
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+        >
+          <Avatar
+            sx={{
+              width: 38,
+              height: 38,
+              bgcolor:
+                "secondary.main",
+
+              fontSize: 15,
+              fontWeight: 800,
+            }}
+          >
+            DC
+          </Avatar>
+
+          <Box>
+            <Typography
+              variant="body2"
+              fontWeight={700}
+            >
+              Maison
+            </Typography>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              DomoCenter v4
+            </Typography>
+          </Box>
+        </Stack>
+      </Box>
+    </Stack>
+  );
+
   return (
     <>
       <CssBaseline />
@@ -115,7 +292,8 @@ function App() {
         sx={{
           display: "flex",
           minHeight: "100vh",
-          bgcolor: "background.default",
+          bgcolor:
+            "background.default",
         }}
       >
         <AppBar
@@ -124,9 +302,12 @@ function App() {
           sx={{
             zIndex:
               (theme) =>
-                theme.zIndex.drawer + 1,
+                theme.zIndex.drawer +
+                1,
 
-            borderBottom: "1px solid",
+            borderBottom:
+              "1px solid",
+
             borderColor:
               "rgba(255, 255, 255, 0.12)",
           }}
@@ -134,22 +315,47 @@ function App() {
           <Toolbar
             sx={{
               minHeight: 68,
+              px: {
+                xs: 1.5,
+                sm: 2,
+              },
             }}
           >
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="space-between"
-              spacing={2}
+              spacing={1}
               sx={{
                 width: "100%",
+                minWidth: 0,
               }}
             >
               <Stack
                 direction="row"
                 alignItems="center"
-                spacing={1.5}
+                spacing={{
+                  xs: 1,
+                  sm: 1.5,
+                }}
+                sx={{
+                  minWidth: 0,
+                }}
               >
+                {isMobile && (
+                  <IconButton
+                    color="inherit"
+                    onClick={() =>
+                      setMobileDrawerOpen(
+                        true
+                      )
+                    }
+                    aria-label="Ouvrir le menu"
+                  >
+                    <MenuRoundedIcon />
+                  </IconButton>
+                )}
+
                 <Avatar
                   sx={{
                     width: 38,
@@ -161,10 +367,15 @@ function App() {
                   <HubRoundedIcon />
                 </Avatar>
 
-                <Box>
+                <Box
+                  sx={{
+                    minWidth: 0,
+                  }}
+                >
                   <Typography
                     variant="h6"
                     fontWeight={800}
+                    noWrap
                     sx={{
                       lineHeight: 1.15,
                     }}
@@ -174,7 +385,13 @@ function App() {
 
                   <Typography
                     variant="caption"
+                    noWrap
                     sx={{
+                      display: {
+                        xs: "none",
+                        sm: "block",
+                      },
+
                       color:
                         "rgba(255, 255, 255, 0.75)",
                     }}
@@ -203,10 +420,25 @@ function App() {
                 }
                 size="small"
                 sx={{
+                  flexShrink: 0,
+
+                  maxWidth: {
+                    xs: 145,
+                    sm: "none",
+                  },
+
                   bgcolor:
                     "rgba(255, 255, 255, 0.14)",
 
                   color: "white",
+
+                  "& .MuiChip-label":
+                    {
+                      overflow:
+                        "hidden",
+                      textOverflow:
+                        "ellipsis",
+                    },
 
                   "& .MuiChip-icon": {
                     color: loading
@@ -221,185 +453,94 @@ function App() {
           </Toolbar>
         </AppBar>
 
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-
-            "& .MuiDrawer-paper": {
-              width: drawerWidth,
-              boxSizing: "border-box",
-              borderRight: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          <Toolbar
-            sx={{
-              minHeight: 68,
+        {isMobile ? (
+          <Drawer
+            variant="temporary"
+            open={
+              mobileDrawerOpen
+            }
+            onClose={() =>
+              setMobileDrawerOpen(
+                false
+              )
+            }
+            ModalProps={{
+              keepMounted: true,
             }}
-          />
-
-          <Stack
             sx={{
-              height: "100%",
-              py: 2,
+              "& .MuiDrawer-paper":
+                {
+                  width:
+                    drawerWidth,
+
+                  boxSizing:
+                    "border-box",
+
+                  bgcolor:
+                    "background.paper",
+                },
             }}
           >
-            <Box
+            <Toolbar
               sx={{
-                px: 2,
-                mb: 1,
-              }}
-            >
-              <Typography
-                variant="overline"
-                color="text.secondary"
-                fontWeight={800}
-                sx={{
-                  letterSpacing: 1.2,
-                }}
-              >
-                Navigation
-              </Typography>
-            </Box>
-
-            <List
-              sx={{
-                px: 0.5,
-              }}
-            >
-              {menuItems.map(
-                (item) => (
-                  <ListItemButton
-                    key={item.path}
-                    component={NavLink}
-                    to={item.path}
-                    end={
-                      item.path === "/"
-                    }
-                    sx={{
-                      minHeight: 48,
-                      color:
-                        "text.secondary",
-
-                      "& .MuiListItemIcon-root":
-                        {
-                          color:
-                            "inherit",
-                        },
-
-                      "&:hover": {
-                        bgcolor:
-                          "action.hover",
-
-                        color:
-                          "primary.main",
-                      },
-
-                      "&.active": {
-                        bgcolor:
-                          "primary.main",
-
-                        color:
-                          "primary.contrastText",
-
-                        boxShadow:
-                          "0 8px 18px rgba(37, 99, 235, 0.2)",
-
-                        "&:hover": {
-                          bgcolor:
-                            "primary.dark",
-                        },
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        minWidth: 42,
-                      }}
-                    >
-                      {item.icon}
-                    </ListItemIcon>
-
-                    <ListItemText
-                      primary={
-                        item.label
-                      }
-                      primaryTypographyProps={{
-                        fontWeight: 700,
-                      }}
-                    />
-                  </ListItemButton>
-                )
-              )}
-            </List>
-
-            <Box
-              sx={{
-                flexGrow: 1,
+                minHeight: 68,
               }}
             />
 
-            <Box
+            {drawerContent}
+          </Drawer>
+        ) : (
+          <Drawer
+            variant="permanent"
+            sx={{
+              width:
+                drawerWidth,
+
+              flexShrink: 0,
+
+              "& .MuiDrawer-paper":
+                {
+                  width:
+                    drawerWidth,
+
+                  boxSizing:
+                    "border-box",
+
+                  borderRight:
+                    "1px solid",
+
+                  borderColor:
+                    "divider",
+
+                  bgcolor:
+                    "background.paper",
+                },
+            }}
+          >
+            <Toolbar
               sx={{
-                px: 2,
+                minHeight: 68,
               }}
-            >
-              <Divider
-                sx={{
-                  mb: 2,
-                }}
-              />
+            />
 
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1.5}
-              >
-                <Avatar
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    bgcolor:
-                      "secondary.main",
-
-                    fontSize: 15,
-                    fontWeight: 800,
-                  }}
-                >
-                  DC
-                </Avatar>
-
-                <Box>
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                  >
-                    Maison
-                  </Typography>
-
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    DomoCenter v4
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          </Stack>
-        </Drawer>
+            {drawerContent}
+          </Drawer>
+        )}
 
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             minWidth: 0,
-            minHeight: "100vh",
-            bgcolor: "background.default",
+            width: {
+              xs: "100%",
+              md: `calc(100% - ${drawerWidth}px)`,
+            },
+            minHeight:
+              "100vh",
+
+            bgcolor:
+              "background.default",
           }}
         >
           <Toolbar
