@@ -261,7 +261,7 @@ function SecurityPage() {
         },
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <Stack
           direction={{
             xs: "column",
@@ -378,7 +378,10 @@ function SecurityPage() {
           <Card>
             <CardContent
               sx={{
-                p: 2.5,
+                p: 1.5,
+                "&:last-child": {
+                  pb: 1.5,
+                },
               }}
             >
               <Stack
@@ -396,15 +399,15 @@ function SecurityPage() {
                 <Stack
                   direction="row"
                   alignItems="center"
-                  spacing={2}
+                  spacing={1.25}
                 >
                   <Box
                     sx={{
-                      width: 52,
-                      height: 52,
+                      width: 40,
+                      height: 40,
                       display: "grid",
                       placeItems: "center",
-                      borderRadius: 3,
+                      borderRadius: 2.25,
                       bgcolor: "primary.main",
                       color:
                         "primary.contrastText",
@@ -415,7 +418,7 @@ function SecurityPage() {
 
                   <Box>
                     <Typography
-                      variant="h6"
+                      variant="subtitle1"
                       fontWeight={800}
                     >
                       {portal?.name ??
@@ -541,7 +544,7 @@ function SecurityPage() {
 
           <Grid
             container
-            spacing={2}
+            spacing={1.5}
           >
             {openingSensors.map(
               (sensor) => (
@@ -576,114 +579,101 @@ function SecurityPage() {
                     }}
                   >
                     <CardContent
-                      sx={{ p: 2.5 }}
+                      sx={{
+                        p: 1.5,
+                        "&:last-child": {
+                          pb: 1.5,
+                        },
+                      }}
                     >
-                      <Stack spacing={2.25}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        spacing={1.25}
+                      >
                         <Stack
                           direction="row"
-                          alignItems="flex-start"
-                          justifyContent="space-between"
-                          spacing={2}
+                          alignItems="center"
+                          spacing={1.25}
+                          sx={{ minWidth: 0 }}
                         >
                           <Box
                             sx={{
-                              width: 50,
-                              height: 50,
-                              display:
-                                "grid",
-                              placeItems:
-                                "center",
-                              borderRadius:
-                                3,
-
+                              width: 40,
+                              height: 40,
+                              flexShrink: 0,
+                              display: "grid",
+                              placeItems: "center",
+                              borderRadius: 2.25,
                               bgcolor:
                                 !sensor.available ||
                                 sensor.isOpen
                                   ? "warning.main"
                                   : "success.main",
-
-                              color:
-                                "white",
+                              color: "white",
                             }}
                           >
                             <DoorFrontRoundedIcon />
                           </Box>
 
-                          <Chip
-                            label={
-                              !sensor.available
-                                ? "Indisponible"
-                                : sensor.isOpen
-                                ? "Ouvert"
-                                : "Fermé"
-                            }
-                            color={
-                              !sensor.available ||
-                              sensor.isOpen
-                                ? "warning"
-                                : "success"
-                            }
-                            size="small"
-                          />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight={800}
+                              noWrap
+                            >
+                              {sensor.name}
+                            </Typography>
+
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={0.5}
+                            >
+                              <Box
+                                sx={{
+                                  display: "grid",
+                                  placeItems: "center",
+                                  color: "text.secondary",
+                                  "& svg": {
+                                    fontSize: 16,
+                                  },
+                                }}
+                              >
+                                {getLocationIcon(
+                                  sensor.location
+                                )}
+                              </Box>
+
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                noWrap
+                              >
+                                {sensor.location}
+                              </Typography>
+                            </Stack>
+                          </Box>
                         </Stack>
 
-                        <Box>
-                          <Typography
-                            variant="h6"
-                            fontWeight={800}
-                          >
-                            {sensor.name}
-                          </Typography>
-
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={0.75}
-                            sx={{
-                              mt: 0.5,
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                display:
-                                  "grid",
-                                placeItems:
-                                  "center",
-                                color:
-                                  "text.secondary",
-
-                                "& svg": {
-                                  fontSize:
-                                    18,
-                                },
-                              }}
-                            >
-                              {getLocationIcon(
-                                sensor.location
-                              )}
-                            </Box>
-
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              {
-                                sensor.location
-                              }
-                            </Typography>
-                          </Stack>
-                        </Box>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          {!sensor.available
-                            ? "Le détecteur ne répond pas actuellement."
-                            : sensor.isOpen
-                            ? "Une ouverture est actuellement détectée."
-                            : "Aucune ouverture détectée."}
-                        </Typography>
+                        <Chip
+                          label={
+                            !sensor.available
+                              ? "Indisponible"
+                              : sensor.isOpen
+                              ? "Ouvert"
+                              : "Fermé"
+                          }
+                          color={
+                            !sensor.available ||
+                            sensor.isOpen
+                              ? "warning"
+                              : "success"
+                          }
+                          size="small"
+                          sx={{ flexShrink: 0 }}
+                        />
                       </Stack>
                     </CardContent>
                   </Card>
@@ -724,7 +714,7 @@ function SecurityPage() {
           ) : (
             <Grid
               container
-              spacing={2}
+              spacing={1.5}
             >
               {shutters.map(
                 (shutter) => {
@@ -743,27 +733,30 @@ function SecurityPage() {
                       <Card>
                         <CardContent
                           sx={{
-                            p: 2.5,
+                            p: 1.5,
+                            "&:last-child": {
+                              pb: 1.5,
+                            },
                           }}
                         >
                           <Stack
-                            spacing={2.5}
+                            spacing={1.5}
                           >
                             <Stack
                               direction="row"
                               alignItems="center"
-                              spacing={2}
+                              spacing={1.25}
                             >
                               <Box
                                 sx={{
-                                  width: 52,
-                                  height: 52,
+                                  width: 40,
+                                  height: 40,
                                   display:
                                     "grid",
                                   placeItems:
                                     "center",
                                   borderRadius:
-                                    3,
+                                    2.25,
                                   bgcolor:
                                     "primary.main",
                                   color:
@@ -775,10 +768,8 @@ function SecurityPage() {
 
                               <Box>
                                 <Typography
-                                  variant="h6"
-                                  fontWeight={
-                                    800
-                                  }
+                                  variant="subtitle1"
+                                  fontWeight={800}
                                 >
                                   {
                                     shutter.name
@@ -801,7 +792,7 @@ function SecurityPage() {
                                 xs: "column",
                                 sm: "row",
                               }}
-                              spacing={1.5}
+                              spacing={1}
                             >
                               <Button
                                 variant="contained"
@@ -934,7 +925,7 @@ function SecurityPage() {
 
           <Grid
             container
-            spacing={2}
+            spacing={1.5}
           >
             {waterLeakSensors.map(
               (sensor) => (
@@ -967,87 +958,82 @@ function SecurityPage() {
                     }}
                   >
                     <CardContent
-                      sx={{ p: 2.5 }}
+                      sx={{
+                        p: 1.5,
+                        "&:last-child": {
+                          pb: 1.5,
+                        },
+                      }}
                     >
-                      <Stack spacing={2}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        spacing={1.25}
+                      >
                         <Stack
                           direction="row"
-                          alignItems="flex-start"
-                          justifyContent="space-between"
-                          spacing={2}
+                          alignItems="center"
+                          spacing={1.25}
+                          sx={{ minWidth: 0 }}
                         >
                           <Box
                             sx={{
-                              width: 50,
-                              height: 50,
-                              display:
-                                "grid",
-                              placeItems:
-                                "center",
-                              borderRadius:
-                                3,
-
+                              width: 40,
+                              height: 40,
+                              flexShrink: 0,
+                              display: "grid",
+                              placeItems: "center",
+                              borderRadius: 2.25,
                               bgcolor:
                                 !sensor.available
                                   ? "warning.main"
                                   : sensor.leakDetected
                                   ? "error.main"
                                   : "success.main",
-
-                              color:
-                                "white",
+                              color: "white",
                             }}
                           >
                             <WaterDropRoundedIcon />
                           </Box>
 
-                          <Chip
-                            label={
-                              !sensor.available
-                                ? "Indisponible"
-                                : sensor.leakDetected
-                                ? "Fuite détectée"
-                                : "Sec"
-                            }
-                            color={
-                              !sensor.available
-                                ? "warning"
-                                : sensor.leakDetected
-                                ? "error"
-                                : "success"
-                            }
-                            size="small"
-                          />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight={800}
+                              noWrap
+                            >
+                              {sensor.name}
+                            </Typography>
+
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              noWrap
+                            >
+                              {sensor.location}
+                            </Typography>
+                          </Box>
                         </Stack>
 
-                        <Box>
-                          <Typography
-                            variant="h6"
-                            fontWeight={800}
-                          >
-                            {sensor.name}
-                          </Typography>
-
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                          >
-                            {
-                              sensor.location
-                            }
-                          </Typography>
-                        </Box>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          {!sensor.available
-                            ? "Le détecteur ne répond pas actuellement."
-                            : sensor.leakDetected
-                            ? "Une présence d’eau est actuellement détectée."
-                            : "Aucune présence d’eau détectée."}
-                        </Typography>
+                        <Chip
+                          label={
+                            !sensor.available
+                              ? "Indisponible"
+                              : sensor.leakDetected
+                              ? "Fuite détectée"
+                              : "Sec"
+                          }
+                          color={
+                            !sensor.available
+                              ? "warning"
+                              : sensor.leakDetected
+                              ? "error"
+                              : "success"
+                          }
+                          size="small"
+                          sx={{ flexShrink: 0 }}
+                        />
                       </Stack>
                     </CardContent>
                   </Card>
@@ -1107,7 +1093,7 @@ function SecurityPage() {
 
           <Grid
             container
-            spacing={2}
+            spacing={1.5}
           >
             {smokeSensors.map(
               (sensor) => (
@@ -1134,7 +1120,12 @@ function SecurityPage() {
                     }}
                   >
                     <CardContent
-                      sx={{ p: 2.5 }}
+                      sx={{
+                        p: 1.5,
+                        "&:last-child": {
+                          pb: 1.5,
+                        },
+                      }}
                     >
                       <Stack
                         direction={{
@@ -1146,23 +1137,23 @@ function SecurityPage() {
                           sm: "center",
                         }}
                         justifyContent="space-between"
-                        spacing={2}
+                        spacing={1.25}
                       >
                         <Stack
                           direction="row"
                           alignItems="center"
-                          spacing={2}
+                          spacing={1.25}
                         >
                           <Box
                             sx={{
-                              width: 52,
-                              height: 52,
+                              width: 40,
+                              height: 40,
                               display:
                                 "grid",
                               placeItems:
                                 "center",
                               borderRadius:
-                                3,
+                                2.25,
 
                               bgcolor:
                                 sensor.smokeDetected
@@ -1178,7 +1169,7 @@ function SecurityPage() {
 
                           <Box>
                             <Typography
-                              variant="h6"
+                              variant="subtitle1"
                               fontWeight={800}
                             >
                               Détecteur{" "}
