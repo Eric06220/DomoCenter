@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from "react-router-dom";
+
 import {
   AppBar,
   Avatar,
@@ -34,6 +35,8 @@ import EnergyPage from "./pages/EnergyPage";
 import SettingsPage from "./pages/SettingsPage";
 import SupervisionPage from "./pages/SupervisionPage";
 import ClimatePage from "./pages/ClimatePage";
+
+import useHomeAssistant from "./hooks/useHomeAssistant";
 
 const drawerWidth = 260;
 
@@ -73,7 +76,6 @@ const menuItems = [
     path: "/supervision",
     icon: <HubRoundedIcon />,
   },
-  
   {
     label: "Paramètres",
     path: "/settings",
@@ -82,6 +84,29 @@ const menuItems = [
 ];
 
 function App() {
+  const {
+    dashboard,
+    loading,
+    error,
+  } = useHomeAssistant(10000);
+
+  /*
+   * Le voyant du bandeau utilise les données
+   * réelles retournées par le Dashboard.
+   *
+   * Pendant le premier chargement, on affiche
+   * "Connexion..." afin de ne pas annoncer
+   * prématurément que le système est connecté.
+   */
+  const homeAssistantOnline =
+    dashboard?.services
+      ?.homeAssistant
+      ?.online === true;
+
+  const systemConnected =
+    !error &&
+    homeAssistantOnline;
+
   return (
     <>
       <CssBaseline />
@@ -97,25 +122,40 @@ function App() {
           position="fixed"
           elevation={0}
           sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1,
+            zIndex:
+              (theme) =>
+                theme.zIndex.drawer + 1,
+
             borderBottom: "1px solid",
-            borderColor: "rgba(255, 255, 255, 0.12)",
+            borderColor:
+              "rgba(255, 255, 255, 0.12)",
           }}
         >
-          <Toolbar sx={{ minHeight: 68 }}>
+          <Toolbar
+            sx={{
+              minHeight: 68,
+            }}
+          >
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="space-between"
               spacing={2}
-              sx={{ width: "100%" }}
+              sx={{
+                width: "100%",
+              }}
             >
-              <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1.5}
+              >
                 <Avatar
                   sx={{
                     width: 38,
                     height: 38,
-                    bgcolor: "rgba(255, 255, 255, 0.16)",
+                    bgcolor:
+                      "rgba(255, 255, 255, 0.16)",
                   }}
                 >
                   <HubRoundedIcon />
@@ -125,7 +165,9 @@ function App() {
                   <Typography
                     variant="h6"
                     fontWeight={800}
-                    sx={{ lineHeight: 1.15 }}
+                    sx={{
+                      lineHeight: 1.15,
+                    }}
                   >
                     DomoCenter
                   </Typography>
@@ -133,10 +175,12 @@ function App() {
                   <Typography
                     variant="caption"
                     sx={{
-                      color: "rgba(255, 255, 255, 0.75)",
+                      color:
+                        "rgba(255, 255, 255, 0.75)",
                     }}
                   >
-                    Centre de contrôle domotique
+                    Centre de contrôle
+                    domotique
                   </Typography>
                 </Box>
               </Stack>
@@ -145,17 +189,31 @@ function App() {
                 icon={
                   <CircleIcon
                     sx={{
-                      fontSize: "10px !important",
+                      fontSize:
+                        "10px !important",
                     }}
                   />
                 }
-                label="Mode simulation"
+                label={
+                  loading
+                    ? "Connexion..."
+                    : systemConnected
+                    ? "Système connecté"
+                    : "Système hors ligne"
+                }
                 size="small"
                 sx={{
-                  bgcolor: "rgba(255, 255, 255, 0.14)",
+                  bgcolor:
+                    "rgba(255, 255, 255, 0.14)",
+
                   color: "white",
+
                   "& .MuiChip-icon": {
-                    color: "#86efac",
+                    color: loading
+                      ? "#fde68a"
+                      : systemConnected
+                      ? "#86efac"
+                      : "#fca5a5",
                   },
                 }}
               />
@@ -168,6 +226,7 @@ function App() {
           sx={{
             width: drawerWidth,
             flexShrink: 0,
+
             "& .MuiDrawer-paper": {
               width: drawerWidth,
               boxSizing: "border-box",
@@ -177,7 +236,11 @@ function App() {
             },
           }}
         >
-          <Toolbar sx={{ minHeight: 68 }} />
+          <Toolbar
+            sx={{
+              minHeight: 68,
+            }}
+          />
 
           <Stack
             sx={{
@@ -185,7 +248,12 @@ function App() {
               py: 2,
             }}
           >
-            <Box sx={{ px: 2, mb: 1 }}>
+            <Box
+              sx={{
+                px: 2,
+                mb: 1,
+              }}
+            >
               <Typography
                 variant="overline"
                 color="text.secondary"
@@ -198,66 +266,106 @@ function App() {
               </Typography>
             </Box>
 
-            <List sx={{ px: 0.5 }}>
-              {menuItems.map((item) => (
-                <ListItemButton
-                  key={item.path}
-                  component={NavLink}
-                  to={item.path}
-                  end={item.path === "/"}
-                  sx={{
-                    minHeight: 48,
-                    color: "text.secondary",
+            <List
+              sx={{
+                px: 0.5,
+              }}
+            >
+              {menuItems.map(
+                (item) => (
+                  <ListItemButton
+                    key={item.path}
+                    component={NavLink}
+                    to={item.path}
+                    end={
+                      item.path === "/"
+                    }
+                    sx={{
+                      minHeight: 48,
+                      color:
+                        "text.secondary",
 
-                    "& .MuiListItemIcon-root": {
-                      color: "inherit",
-                    },
-
-                    "&:hover": {
-                      bgcolor: "action.hover",
-                      color: "primary.main",
-                    },
-
-                    "&.active": {
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                      boxShadow: "0 8px 18px rgba(37, 99, 235, 0.2)",
+                      "& .MuiListItemIcon-root":
+                        {
+                          color:
+                            "inherit",
+                        },
 
                       "&:hover": {
-                        bgcolor: "primary.dark",
+                        bgcolor:
+                          "action.hover",
+
+                        color:
+                          "primary.main",
                       },
-                    },
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 42,
+
+                      "&.active": {
+                        bgcolor:
+                          "primary.main",
+
+                        color:
+                          "primary.contrastText",
+
+                        boxShadow:
+                          "0 8px 18px rgba(37, 99, 235, 0.2)",
+
+                        "&:hover": {
+                          bgcolor:
+                            "primary.dark",
+                        },
+                      },
                     }}
                   >
-                    {item.icon}
-                  </ListItemIcon>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 42,
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
 
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontWeight: 700,
-                    }}
-                  />
-                </ListItemButton>
-              ))}
+                    <ListItemText
+                      primary={
+                        item.label
+                      }
+                      primaryTypographyProps={{
+                        fontWeight: 700,
+                      }}
+                    />
+                  </ListItemButton>
+                )
+              )}
             </List>
 
-            <Box sx={{ flexGrow: 1 }} />
+            <Box
+              sx={{
+                flexGrow: 1,
+              }}
+            />
 
-            <Box sx={{ px: 2 }}>
-              <Divider sx={{ mb: 2 }} />
+            <Box
+              sx={{
+                px: 2,
+              }}
+            >
+              <Divider
+                sx={{
+                  mb: 2,
+                }}
+              />
 
-              <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1.5}
+              >
                 <Avatar
                   sx={{
                     width: 38,
                     height: 38,
-                    bgcolor: "secondary.main",
+                    bgcolor:
+                      "secondary.main",
+
                     fontSize: 15,
                     fontWeight: 800,
                   }}
@@ -266,11 +374,17 @@ function App() {
                 </Avatar>
 
                 <Box>
-                  <Typography variant="body2" fontWeight={700}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                  >
                     Maison
                   </Typography>
 
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
                     DomoCenter v4
                   </Typography>
                 </Box>
@@ -288,19 +402,69 @@ function App() {
             bgcolor: "background.default",
           }}
         >
-          <Toolbar sx={{ minHeight: 68 }} />
+          <Toolbar
+            sx={{
+              minHeight: 68,
+            }}
+          />
 
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/lighting" element={<LightingPage />} />
-            <Route path="/cameras" element={<CameraPage />} />
-            <Route path="/security" element={<SecurityPage />} />
-            <Route path="/energy" element={<EnergyPage />} />
-            <Route path="/climate" element={<ClimatePage />} />
-            <Route path="/supervision" element={<SupervisionPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
+            <Route
+              path="/"
+              element={
+                <DashboardPage />
+              }
+            />
 
+            <Route
+              path="/lighting"
+              element={
+                <LightingPage />
+              }
+            />
+
+            <Route
+              path="/cameras"
+              element={
+                <CameraPage />
+              }
+            />
+
+            <Route
+              path="/security"
+              element={
+                <SecurityPage />
+              }
+            />
+
+            <Route
+              path="/energy"
+              element={
+                <EnergyPage />
+              }
+            />
+
+            <Route
+              path="/climate"
+              element={
+                <ClimatePage />
+              }
+            />
+
+            <Route
+              path="/supervision"
+              element={
+                <SupervisionPage />
+              }
+            />
+
+            <Route
+              path="/settings"
+              element={
+                <SettingsPage />
+              }
+            />
+          </Routes>
         </Box>
       </Box>
     </>
