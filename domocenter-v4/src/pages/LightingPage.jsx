@@ -59,21 +59,20 @@ function LightingPage() {
     refreshDashboard,
   } = useHomeAssistant(10000);
 
-  const [commandingDeviceId, setCommandingDeviceId] =
-    useState(null);
+  const [
+    commandingDeviceId,
+    setCommandingDeviceId,
+  ] = useState(null);
 
-  const [commandError, setCommandError] =
-    useState("");
+  const [
+    commandError,
+    setCommandError,
+  ] = useState("");
 
-  /*
-   * État visuel temporaire.
-   *
-   * Il permet au bouton de changer
-   * immédiatement dès le premier clic,
-   * sans attendre la remontée Home Assistant.
-   */
-  const [optimisticStates, setOptimisticStates] =
-    useState({});
+  const [
+    optimisticStates,
+    setOptimisticStates,
+  ] = useState({});
 
   const lighting =
     dashboard?.lighting ?? null;
@@ -81,10 +80,6 @@ function LightingPage() {
   const backendDevices =
     lighting?.devices ?? [];
 
-  /*
-   * On applique l'état optimiste uniquement
-   * lorsqu'une commande est en attente.
-   */
   const devices = useMemo(
     () =>
       backendDevices.map((device) => {
@@ -121,9 +116,7 @@ function LightingPage() {
   const unavailableDevices =
     lighting?.unavailableCount ?? 0;
 
-  async function handleToggle(
-    device
-  ) {
+  async function handleToggle(device) {
     if (
       !device.available ||
       commandingDeviceId
@@ -143,9 +136,6 @@ function LightingPage() {
       device.id
     );
 
-    /*
-     * Mise à jour visuelle immédiate.
-     */
     setOptimisticStates(
       (current) => ({
         ...current,
@@ -160,11 +150,6 @@ function LightingPage() {
         requestedState
       );
 
-      /*
-       * On laisse un peu de temps
-       * à Home Assistant pour publier
-       * réellement le nouvel état.
-       */
       await new Promise(
         (resolve) => {
           setTimeout(
@@ -176,10 +161,6 @@ function LightingPage() {
 
       await refreshDashboard();
 
-      /*
-       * Une fois Home Assistant relu,
-       * on retire l'état temporaire.
-       */
       setOptimisticStates(
         (current) => {
           const next = {
@@ -194,10 +175,6 @@ function LightingPage() {
         }
       );
     } catch (commandFailure) {
-      /*
-       * En cas d'échec,
-       * retour à l'état précédent.
-       */
       setOptimisticStates(
         (current) => {
           const next = {
@@ -232,7 +209,7 @@ function LightingPage() {
         },
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <Stack
           direction={{
             xs: "column",
@@ -243,7 +220,7 @@ function LightingPage() {
             sm: "center",
           }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={1.5}
         >
           <Box>
             <Typography
@@ -339,7 +316,7 @@ function LightingPage() {
 
         <Grid
           container
-          spacing={2}
+          spacing={1.5}
         >
           {devices.map(
             (device) => {
@@ -378,73 +355,59 @@ function LightingPage() {
                   >
                     <CardContent
                       sx={{
-                        p: 2.5,
+                        p: 1.5,
+
+                        "&:last-child": {
+                          pb: 1.5,
+                        },
                       }}
                     >
                       <Stack
-                        spacing={2.25}
+                        direction="row"
+                        alignItems="center"
+                        spacing={1.5}
                       >
-                        <Stack
-                          direction="row"
-                          alignItems="flex-start"
-                          justifyContent="space-between"
-                          spacing={2}
-                        >
-                          <Box
-                            sx={{
-                              width: 50,
-                              height: 50,
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            flexShrink: 0,
 
-                              display:
-                                "grid",
+                            display: "grid",
+                            placeItems: "center",
 
-                              placeItems:
-                                "center",
+                            borderRadius: 2.25,
 
-                              borderRadius:
-                                3,
-
-                              bgcolor:
-                                device.isOn
-                                  ? "primary.main"
-                                  : "action.hover",
-
-                              color:
-                                device.isOn
-                                  ? "primary.contrastText"
-                                  : "text.secondary",
-                            }}
-                          >
-                            {getDeviceIcon(
-                              device
-                            )}
-                          </Box>
-
-                          <Switch
-                            checked={
+                            bgcolor:
                               device.isOn
-                            }
-                            disabled={
-                              !device.available ||
-                              commanding ||
-                              refreshing
-                            }
-                            onChange={() =>
-                              handleToggle(
-                                device
-                              )
-                            }
-                            inputProps={{
-                              "aria-label":
-                                `Activer ou désactiver ${device.name}`,
-                            }}
-                          />
-                        </Stack>
+                                ? "primary.main"
+                                : "action.hover",
 
-                        <Box>
+                            color:
+                              device.isOn
+                                ? "primary.contrastText"
+                                : "text.secondary",
+
+                            "& svg": {
+                              fontSize: 22,
+                            },
+                          }}
+                        >
+                          {getDeviceIcon(
+                            device
+                          )}
+                        </Box>
+
+                        <Box
+                          sx={{
+                            flexGrow: 1,
+                            minWidth: 0,
+                          }}
+                        >
                           <Typography
-                            variant="h6"
+                            variant="subtitle1"
                             fontWeight={800}
+                            noWrap
                           >
                             {device.name}
                           </Typography>
@@ -452,82 +415,99 @@ function LightingPage() {
                           <Stack
                             direction="row"
                             alignItems="center"
-                            spacing={0.75}
-                            sx={{
-                              mt: 0.5,
-                            }}
+                            spacing={0.5}
                           >
                             <MeetingRoomRoundedIcon
                               sx={{
-                                fontSize:
-                                  17,
-
+                                fontSize: 15,
                                 color:
                                   "text.secondary",
                               }}
                             />
 
                             <Typography
-                              variant="body2"
+                              variant="caption"
                               color="text.secondary"
+                              noWrap
                             >
-                              {
-                                device.location
-                              }
+                              {device.location}
                             </Typography>
                           </Stack>
                         </Box>
 
-                        <Stack
-                          spacing={1}
-                        >
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                          >
-                            {
-                              device.displayType
-                            }
-                          </Typography>
+                        <Switch
+                          checked={
+                            device.isOn
+                          }
+                          disabled={
+                            !device.available ||
+                            commanding ||
+                            refreshing
+                          }
+                          onChange={() =>
+                            handleToggle(
+                              device
+                            )
+                          }
+                          inputProps={{
+                            "aria-label":
+                              `Activer ou désactiver ${device.name}`,
+                          }}
+                        />
+                      </Stack>
 
-                          {!device.available ? (
-                            <Chip
-                              label="Indisponible"
-                              color="warning"
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                alignSelf:
-                                  "flex-start",
-                              }}
-                            />
-                          ) : (
-                            <Chip
-                              label={
-                                commanding
-                                  ? "Commande..."
-                                  : device.isOn
-                                  ? "Allumé"
-                                  : "Éteint"
-                              }
-                              color={
-                                device.isOn
-                                  ? "success"
-                                  : "default"
-                              }
-                              size="small"
-                              variant={
-                                device.isOn
-                                  ? "filled"
-                                  : "outlined"
-                              }
-                              sx={{
-                                alignSelf:
-                                  "flex-start",
-                              }}
-                            />
-                          )}
-                        </Stack>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        spacing={1}
+                        sx={{
+                          mt: 1.25,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          {device.displayType}
+                        </Typography>
+
+                        {!device.available ? (
+                          <Chip
+                            label="Indisponible"
+                            color="warning"
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 24,
+                            }}
+                          />
+                        ) : (
+                          <Chip
+                            label={
+                              commanding
+                                ? "Commande..."
+                                : device.isOn
+                                ? "Allumé"
+                                : "Éteint"
+                            }
+                            color={
+                              device.isOn
+                                ? "success"
+                                : "default"
+                            }
+                            size="small"
+                            variant={
+                              device.isOn
+                                ? "filled"
+                                : "outlined"
+                            }
+                            sx={{
+                              height: 24,
+                            }}
+                          />
+                        )}
                       </Stack>
                     </CardContent>
                   </Card>
