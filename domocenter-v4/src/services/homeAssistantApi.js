@@ -86,3 +86,103 @@ export async function triggerPortal() {
   );
 }
 
+export async function getClimateData() {
+  return fetchJson(
+    "/api/climate"
+  );
+}
+
+export async function setClimatePower(
+  deviceId,
+  isOn
+) {
+  return fetchJson(
+    `/api/climate/${deviceId}/power`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        isOn,
+      }),
+    }
+  );
+}
+
+export async function setClimateTemperature(
+  deviceId,
+  temperature
+) {
+  return fetchJson(
+    `/api/climate/${deviceId}/temperature`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        temperature,
+      }),
+    }
+  );
+}
+
+export async function setClimateHvacMode(
+  deviceId,
+  hvacMode
+) {
+  return fetchJson(
+    `/api/climate/${deviceId}/hvac-mode`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        hvacMode,
+      }),
+    }
+  );
+}
+
+export async function setClimateFanMode(
+  deviceId,
+  fanMode
+) {
+  return fetchJson(
+    `/api/climate/${deviceId}/fan-mode`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        fanMode,
+      }),
+    }
+  );
+}
+
+export async function setClimateSwingMode(
+  deviceId,
+  swingMode
+) {
+  return fetchJson(
+    `/api/climate/${deviceId}/swing-mode`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        swingMode,
+      }),
+    }
+  );
+}

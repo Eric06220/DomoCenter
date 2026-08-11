@@ -1,6 +1,12 @@
 import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -19,8 +25,15 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import CottageRoundedIcon from "@mui/icons-material/CottageRounded";
 import GarageRoundedIcon from "@mui/icons-material/GarageRounded";
 import WarehouseRoundedIcon from "@mui/icons-material/WarehouseRounded";
+import FenceRoundedIcon from "@mui/icons-material/FenceRounded";
+import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 
 import useHomeAssistant from "../hooks/useHomeAssistant";
+
+import {
+  getAccessData,
+  triggerPortal,
+} from "../services/homeAssistantApi";
 
 function getLocationIcon(location) {
   switch (location) {
@@ -50,6 +63,21 @@ function SecurityPage() {
     loading,
     error,
   } = useHomeAssistant(10000);
+
+  const [portal, setPortal] =
+    useState(null);
+
+  const [portalLoading, setPortalLoading] =
+    useState(true);
+
+  const [portalCommanding, setPortalCommanding] =
+    useState(false);
+
+  const [portalMessage, setPortalMessage] =
+    useState("");
+
+  const [portalError, setPortalError] =
+    useState("");
 
   const openings =
     dashboard?.security?.openings ?? null;
@@ -91,6 +119,74 @@ function SecurityPage() {
     openSensors > 0 ||
     waterLeakAlerts > 0 ||
     smokeAlerts > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPortal() {
+      try {
+        setPortalLoading(true);
+        setPortalError("");
+
+        const accessData =
+          await getAccessData();
+
+        if (!cancelled) {
+          setPortal(
+            accessData?.portal ?? null
+          );
+        }
+      } catch (caughtError) {
+        if (!cancelled) {
+          setPortalError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Impossible de récupérer le portail."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPortalLoading(false);
+        }
+      }
+    }
+
+    loadPortal();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handlePortalTrigger() {
+    if (portalCommanding) {
+      return;
+    }
+
+    try {
+      setPortalCommanding(true);
+      setPortalMessage("");
+      setPortalError("");
+
+      await triggerPortal();
+
+      setPortalMessage(
+        "Commande portail envoyée."
+      );
+
+      window.setTimeout(() => {
+        setPortalMessage("");
+      }, 2500);
+    } catch (caughtError) {
+      setPortalError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Impossible de commander le portail."
+      );
+    } finally {
+      setPortalCommanding(false);
+    }
+  }
 
   return (
     <Box
@@ -177,6 +273,144 @@ function SecurityPage() {
           </Alert>
         )}
 
+        {/* PORTAIL */}
+
+        <Box>
+          <Typography
+            variant="h5"
+            fontWeight={800}
+            sx={{ mb: 0.5 }}
+          >
+            Portail
+          </Typography>
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            Commande ouverture / fermeture du portail
+          </Typography>
+
+          <Card>
+            <CardContent
+              sx={{
+                p: 2.5,
+              }}
+            >
+              <Stack
+                direction={{
+                  xs: "column",
+                  sm: "row",
+                }}
+                alignItems={{
+                  xs: "stretch",
+                  sm: "center",
+                }}
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={2}
+                >
+                  <Box
+                    sx={{
+                      width: 52,
+                      height: 52,
+                      display: "grid",
+                      placeItems: "center",
+                      borderRadius: 3,
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                    }}
+                  >
+                    <FenceRoundedIcon />
+                  </Box>
+
+                  <Box>
+                    <Typography
+                      variant="h6"
+                      fontWeight={800}
+                    >
+                      {portal?.name ??
+                        "Portail"}
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {portal?.location ??
+                        "Entrée"}
+                    </Typography>
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Commande par impulsion —
+                      aucun état ouvert / fermé
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={
+                    <TouchAppRoundedIcon />
+                  }
+                  disabled={
+                    portalLoading ||
+                    portalCommanding ||
+                    portal?.available === false
+                  }
+                  onClick={
+                    handlePortalTrigger
+                  }
+                  sx={{
+                    minWidth: {
+                      xs: "100%",
+                      sm: 210,
+                    },
+                    minHeight: 48,
+                    fontWeight: 800,
+                  }}
+                >
+                  {portalLoading
+                    ? "Chargement..."
+                    : portalCommanding
+                    ? "Commande en cours..."
+                    : "Commander le portail"}
+                </Button>
+              </Stack>
+
+              {portalMessage && (
+                <Alert
+                  severity="success"
+                  sx={{ mt: 2 }}
+                >
+                  {portalMessage}
+                </Alert>
+              )}
+
+              {portalError && (
+                <Alert
+                  severity="error"
+                  sx={{ mt: 2 }}
+                  onClose={() =>
+                    setPortalError("")
+                  }
+                >
+                  {portalError}
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+
         {/* OUVERTURES */}
 
         <Box>
@@ -215,7 +449,9 @@ function SecurityPage() {
             >
               <Chip
                 label={`${openSensors} ouvert${
-                  openSensors > 1 ? "s" : ""
+                  openSensors > 1
+                    ? "s"
+                    : ""
                 } sur ${openingSensors.length}`}
                 color={
                   openSensors > 0
@@ -290,9 +526,12 @@ function SecurityPage() {
                             sx={{
                               width: 50,
                               height: 50,
-                              display: "grid",
-                              placeItems: "center",
-                              borderRadius: 3,
+                              display:
+                                "grid",
+                              placeItems:
+                                "center",
+                              borderRadius:
+                                3,
 
                               bgcolor:
                                 !sensor.available ||
@@ -300,7 +539,8 @@ function SecurityPage() {
                                   ? "warning.main"
                                   : "success.main",
 
-                              color: "white",
+                              color:
+                                "white",
                             }}
                           >
                             <DoorFrontRoundedIcon />
@@ -336,16 +576,22 @@ function SecurityPage() {
                             direction="row"
                             alignItems="center"
                             spacing={0.75}
-                            sx={{ mt: 0.5 }}
+                            sx={{
+                              mt: 0.5,
+                            }}
                           >
                             <Box
                               sx={{
-                                display: "grid",
-                                placeItems: "center",
-                                color: "text.secondary",
+                                display:
+                                  "grid",
+                                placeItems:
+                                  "center",
+                                color:
+                                  "text.secondary",
 
                                 "& svg": {
-                                  fontSize: 18,
+                                  fontSize:
+                                    18,
                                 },
                               }}
                             >
@@ -358,7 +604,9 @@ function SecurityPage() {
                               variant="body2"
                               color="text.secondary"
                             >
-                              {sensor.location}
+                              {
+                                sensor.location
+                              }
                             </Typography>
                           </Stack>
                         </Box>
@@ -495,9 +743,12 @@ function SecurityPage() {
                             sx={{
                               width: 50,
                               height: 50,
-                              display: "grid",
-                              placeItems: "center",
-                              borderRadius: 3,
+                              display:
+                                "grid",
+                              placeItems:
+                                "center",
+                              borderRadius:
+                                3,
 
                               bgcolor:
                                 !sensor.available
@@ -506,7 +757,8 @@ function SecurityPage() {
                                   ? "error.main"
                                   : "success.main",
 
-                              color: "white",
+                              color:
+                                "white",
                             }}
                           >
                             <WaterDropRoundedIcon />
@@ -543,7 +795,9 @@ function SecurityPage() {
                             variant="body2"
                             color="text.secondary"
                           >
-                            {sensor.location}
+                            {
+                              sensor.location
+                            }
                           </Typography>
                         </Box>
 
@@ -594,7 +848,8 @@ function SecurityPage() {
                 variant="body2"
                 color="text.secondary"
               >
-                Surveillance de la maison et du studio
+                Surveillance de la maison
+                et du studio
               </Typography>
             </Box>
 
@@ -665,16 +920,20 @@ function SecurityPage() {
                             sx={{
                               width: 52,
                               height: 52,
-                              display: "grid",
-                              placeItems: "center",
-                              borderRadius: 3,
+                              display:
+                                "grid",
+                              placeItems:
+                                "center",
+                              borderRadius:
+                                3,
 
                               bgcolor:
                                 sensor.smokeDetected
                                   ? "error.main"
                                   : "success.main",
 
-                              color: "white",
+                              color:
+                                "white",
                             }}
                           >
                             <LocalFireDepartmentRoundedIcon />
@@ -693,7 +952,9 @@ function SecurityPage() {
                               variant="body2"
                               color="text.secondary"
                             >
-                              {sensor.location}
+                              {
+                                sensor.location
+                              }
                             </Typography>
                           </Box>
                         </Stack>
@@ -723,8 +984,8 @@ function SecurityPage() {
           variant="body2"
           color="text.secondary"
         >
-          Les états affichés proviennent directement
-          de Home Assistant.
+          Les états affichés proviennent
+          directement de Home Assistant.
         </Typography>
       </Stack>
     </Box>

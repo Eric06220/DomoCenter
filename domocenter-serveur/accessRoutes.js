@@ -7,71 +7,139 @@ function createAccessRouter({
 }) {
   const router = express.Router();
 
-  router.get("/", async (request, response, next) => {
-    try {
-      const dashboard =
-        await dashboardService.getDashboardData(false);
+  const PORTAL_PULSE_DURATION_MS = 700;
 
-      const portal =
-        entityConfiguration.accessDevices?.find(
-          (device) => device.id === "portail"
-        );
+  router.get(
+    "/",
+    async (
+      request,
+      response,
+      next
+    ) => {
+      try {
+        const dashboard =
+          await dashboardService
+            .getDashboardData(false);
 
-      return response.json({
-        openings:
-          dashboard.security?.openings ?? {
-            total: 0,
-            open: 0,
-            closed: 0,
-            unavailable: 0,
-            sensors: [],
-          },
+        const portal =
+          entityConfiguration
+            .accessDevices
+            ?.find(
+              (device) =>
+                device.id ===
+                "portail"
+            );
 
-        portal: portal
-          ? {
-              id: portal.id,
-              name: portal.name,
-              location: portal.location,
-              available: true,
-              actionType: "pulse",
-            }
-          : null,
-      });
-    } catch (error) {
-      next(error);
+        return response.json({
+          openings:
+            dashboard
+              .security
+              ?.openings ?? {
+              total: 0,
+              open: 0,
+              closed: 0,
+              unavailable: 0,
+              sensors: [],
+            },
+
+          portal: portal
+            ? {
+                id: portal.id,
+                name: portal.name,
+                location:
+                  portal.location,
+                available: true,
+                actionType:
+                  "pulse",
+              }
+            : null,
+        });
+      } catch (error) {
+        next(error);
+      }
     }
-  });
+  );
 
   router.post(
     "/portail/trigger",
-    async (request, response, next) => {
+    async (
+      request,
+      response,
+      next
+    ) => {
       try {
         const portal =
-          entityConfiguration.accessDevices?.find(
-            (device) => device.id === "portail"
-          );
+          entityConfiguration
+            .accessDevices
+            ?.find(
+              (device) =>
+                device.id ===
+                "portail"
+            );
 
         if (!portal) {
-          return response.status(404).json({
-            success: false,
-            error:
-              "Le portail n'est pas configuré dans DomoCenter.",
-          });
+          return response
+            .status(404)
+            .json({
+              success: false,
+
+              error:
+                "Le portail n'est pas configuré dans DomoCenter.",
+            });
         }
 
-        await homeAssistantService.setSwitchState(
-          portal.entityId,
-          true
+        /*
+         * Début de l'impulsion.
+         */
+        await homeAssistantService
+          .setSwitchState(
+            portal.entityId,
+            true
+          );
+
+        /*
+         * Durée de l'impulsion.
+         */
+        await new Promise(
+          (resolve) => {
+            setTimeout(
+              resolve,
+              PORTAL_PULSE_DURATION_MS
+            );
+          }
         );
 
-        dashboardService.clearCache();
+        /*
+         * Fin de l'impulsion.
+         *
+         * On force le retour à OFF :
+         * DomoCenter ne considère jamais
+         * cette entité comme un état
+         * ouvert / fermé du portail.
+         */
+        await homeAssistantService
+          .setSwitchState(
+            portal.entityId,
+            false
+          );
+
+        dashboardService
+          .clearCache();
 
         return response.json({
           success: true,
+
+          action:
+            "pulse",
+
+          durationMs:
+            PORTAL_PULSE_DURATION_MS,
+
           portal: {
             id: portal.id,
             name: portal.name,
-            location: portal.location,
+            location:
+              portal.location,
           },
         });
       } catch (error) {

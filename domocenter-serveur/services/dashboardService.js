@@ -4,6 +4,7 @@ function createDashboardService({
   homeAssistantService,
   entityConfiguration,
   buildClimateData,
+  buildClimateControlData,
   buildOpeningData,
   buildWaterLeakData,
   buildSmokeData,
@@ -20,6 +21,7 @@ function createDashboardService({
   cacheDurationMs = 10_000,
   homeAssistantUrl,
 }) {
+
   let cache = {
     data: null,
     createdAt: 0,
@@ -167,6 +169,21 @@ function createDashboardService({
         cameraDevices:
           entityConfiguration
             .cameraDevices ?? [],
+
+        cameraRecharge:
+          entityConfiguration
+            .cameraRecharge ?? null,
+
+        entities,
+        findEntity,
+        isEntityAvailable,
+      }),
+      
+      climateControl: buildClimateControlData({
+        climateDevices:
+          entityConfiguration
+            .climateDevices ?? [],
+
         entities,
         findEntity,
         isEntityAvailable,

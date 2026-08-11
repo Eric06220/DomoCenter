@@ -76,6 +76,50 @@ function createHomeAssistantService({
     }
   }
 
+  async function callClimateService(
+  serviceName,
+  entityId,
+  data = {}
+) {
+  if (!serviceName) {
+    throw new Error(
+      "Service climate manquant."
+    );
+  }
+
+  if (!entityId) {
+    throw new Error(
+      "Entité climate manquante."
+    );
+  }
+
+  try {
+    await api.post(
+      `/services/climate/${serviceName}`,
+      {
+        entity_id: entityId,
+        ...data,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Erreur commande climatisation Home Assistant :",
+      {
+        serviceName,
+        entityId,
+        data,
+        status:
+          error.response?.status,
+        response:
+          error.response?.data,
+      }
+    );
+
+    throw error;
+  }
+}
+
+
   async function sendNotification({
     message,
     entityId = "notify.iphone",
@@ -123,6 +167,7 @@ function createHomeAssistantService({
     getStatus,
     getEntities,
     setSwitchState,
+    callClimateService,
     sendNotification,
   };
 }

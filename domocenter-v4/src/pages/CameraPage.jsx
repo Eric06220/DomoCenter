@@ -13,214 +13,394 @@ import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
 import WifiRoundedIcon from "@mui/icons-material/WifiRounded";
 import WifiOffRoundedIcon from "@mui/icons-material/WifiOffRounded";
-import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import BatteryChargingFullRoundedIcon from "@mui/icons-material/BatteryChargingFullRounded";
+import PowerOffRoundedIcon from "@mui/icons-material/PowerOffRounded";
 
-const cameras = [
-  {
-    id: "portail",
-    name: "Portail",
-    model: "ANRAN P3 Max",
-    location: "Portail",
-    online: true,
-  },
-  {
-    id: "entree",
-    name: "Entrée",
-    model: "ANRAN S02",
-    location: "Entrée",
-    online: true,
-  },
-  {
-    id: "allee",
-    name: "Allée",
-    model: "ANRAN S02",
-    location: "Allée",
-    online: true,
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    model: "ANRAN S02",
-    location: "Studio",
-    online: true,
-  },
-  {
-    id: "chalet",
-    name: "Chalet",
-    model: "ANRAN P3 Max",
-    location: "Chalet",
-    online: true,
-  },
-  {
-    id: "atelier",
-    name: "Atelier",
-    model: "HI3516",
-    location: "Atelier",
-    online: false,
-  },
-  {
-    id: "sam",
-    name: "Salle à manger",
-    model: "iCam365",
-    location: "Maison",
-    online: true,
-  },
-];
+import useHomeAssistant from "../hooks/useHomeAssistant";
 
 function CameraPage() {
-  const onlineCameras = cameras.filter((camera) => camera.online).length;
+  const {
+    dashboard,
+    loading,
+    error,
+  } = useHomeAssistant(10000);
+
+  const camerasData =
+    dashboard?.cameras ?? null;
+
+  const cameras =
+    camerasData?.cameras ?? [];
+
+  const integrated =
+    camerasData?.integrated ?? 0;
+
+  const available =
+    camerasData?.available ?? 0;
+
+  const unavailable =
+    camerasData?.unavailable ?? 0;
+
+  const notIntegrated =
+    camerasData?.notIntegrated ?? 0;
+
+  const recharge =
+    camerasData?.recharge ?? null;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box
+      sx={{
+        p: {
+          xs: 2,
+          md: 3,
+        },
+      }}
+    >
       <Stack spacing={3}>
         <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "flex-start", sm: "center" }}
+          direction={{
+            xs: "column",
+            sm: "row",
+          }}
+          alignItems={{
+            xs: "flex-start",
+            sm: "center",
+          }}
           justifyContent="space-between"
           spacing={2}
         >
           <Box>
-            <Typography variant="h4" fontWeight={800}>
+            <Typography
+              variant="h4"
+              fontWeight={800}
+            >
               Caméras
             </Typography>
 
-            <Typography variant="body1" color="text.secondary">
+            <Typography
+              variant="body1"
+              color="text.secondary"
+            >
               Surveillance des caméras extérieures et intérieures
             </Typography>
           </Box>
 
           <Chip
-            icon={<CheckCircleRoundedIcon />}
-            label={`${onlineCameras} caméra${
-              onlineCameras > 1 ? "s" : ""
-            } en ligne sur ${cameras.length}`}
+            icon={
+              <CheckCircleRoundedIcon />
+            }
+            label={`${available} caméra${
+              available > 1 ? "s" : ""
+            } disponible${
+              available > 1 ? "s" : ""
+            } sur ${integrated}`}
             color={
-              onlineCameras === cameras.length ? "success" : "warning"
+              unavailable === 0
+                ? "success"
+                : "warning"
             }
             variant="outlined"
           />
         </Stack>
 
-        <Alert severity="info">
-          Les aperçus vidéo sont encore simulés. Les vrais flux seront ajoutés
-          après la connexion à Home Assistant.
-        </Alert>
+        {error && (
+          <Alert severity="error">
+            Impossible de récupérer les données caméras : {error}
+          </Alert>
+        )}
 
-        <Grid container spacing={2}>
-          {cameras.map((camera) => (
-            <Grid key={camera.id} size={{ xs: 12, sm: 6, lg: 4 }}>
-              <Card
-                sx={{
-                  height: "100%",
-                  overflow: "hidden",
-                  borderColor: camera.online
-                    ? "success.light"
-                    : "error.light",
+        {/* RECHARGE CAMÉRAS */}
+
+        {recharge && (
+          <Card>
+            <CardContent sx={{ p: 2.5 }}>
+              <Stack
+                direction={{
+                  xs: "column",
+                  sm: "row",
+                }}
+                alignItems={{
+                  xs: "flex-start",
+                  sm: "center",
+                }}
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={2}
+                >
+                  <Box
+                    sx={{
+                      width: 52,
+                      height: 52,
+                      display: "grid",
+                      placeItems: "center",
+                      borderRadius: 3,
+                      bgcolor:
+                        recharge.available &&
+                        recharge.active
+                          ? "success.main"
+                          : recharge.available
+                          ? "action.hover"
+                          : "warning.main",
+                      color:
+                        recharge.available &&
+                        recharge.active
+                          ? "white"
+                          : "text.secondary",
+                    }}
+                  >
+                    {recharge.active ? (
+                      <BatteryChargingFullRoundedIcon />
+                    ) : (
+                      <PowerOffRoundedIcon />
+                    )}
+                  </Box>
+
+                  <Box>
+                    <Typography
+                      variant="h6"
+                      fontWeight={800}
+                    >
+                      Recharge caméras
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Entrée + Allée
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Chip
+                  label={
+                    !recharge.available
+                      ? "Indisponible"
+                      : recharge.active
+                      ? "Alimentation active"
+                      : "Alimentation arrêtée"
+                  }
+                  color={
+                    !recharge.available
+                      ? "warning"
+                      : recharge.active
+                      ? "success"
+                      : "default"
+                  }
+                  variant={
+                    recharge.active
+                      ? "filled"
+                      : "outlined"
+                  }
+                />
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+
+        {!error && !loading && (
+          <Alert severity="info">
+            {notIntegrated > 0
+              ? `${notIntegrated} caméra${
+                  notIntegrated > 1 ? "s" : ""
+                } ne ${
+                  notIntegrated > 1
+                    ? "sont"
+                    : "est"
+                } pas encore intégrée${
+                  notIntegrated > 1
+                    ? "s"
+                    : ""
+                } dans Home Assistant.`
+              : "Toutes les caméras configurées sont intégrées dans Home Assistant."}
+          </Alert>
+        )}
+
+        <Grid
+          container
+          spacing={2}
+        >
+          {cameras.map(
+            (camera) => (
+              <Grid
+                key={camera.id}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  lg: 4,
                 }}
               >
-                <Box
+                <Card
                   sx={{
-                    position: "relative",
-                    minHeight: 190,
-                    display: "grid",
-                    placeItems: "center",
-                    bgcolor: camera.online ? "#0f172a" : "#374151",
-                    color: "white",
+                    height: "100%",
+                    overflow: "hidden",
+
+                    borderColor:
+                      camera.integrated &&
+                      camera.available
+                        ? "success.light"
+                        : camera.integrated
+                        ? "error.light"
+                        : "divider",
+
+                    opacity:
+                      camera.integrated &&
+                      camera.available === false
+                        ? 0.7
+                        : 1,
                   }}
                 >
-                  <Stack alignItems="center" spacing={1}>
-                    <VideocamRoundedIcon sx={{ fontSize: 54, opacity: 0.9 }} />
-
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                      Aperçu vidéo indisponible
-                    </Typography>
-                  </Stack>
-
-                  <Chip
-                    icon={
-                      camera.online ? (
-                        <WifiRoundedIcon />
-                      ) : (
-                        <WifiOffRoundedIcon />
-                      )
-                    }
-                    label={camera.online ? "En ligne" : "Hors ligne"}
-                    color={camera.online ? "success" : "error"}
-                    size="small"
+                  <Box
                     sx={{
-                      position: "absolute",
-                      top: 12,
-                      right: 12,
+                      position:
+                        "relative",
+                      minHeight: 190,
+                      display: "grid",
+                      placeItems:
+                        "center",
+                      bgcolor:
+                        camera.integrated &&
+                        camera.available
+                          ? "#0f172a"
+                          : "#374151",
+                      color: "white",
                     }}
-                  />
-
-                  {camera.online && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        bottom: 12,
-                        right: 12,
-                        width: 38,
-                        height: 38,
-                        display: "grid",
-                        placeItems: "center",
-                        borderRadius: "50%",
-                        bgcolor: "rgba(255, 255, 255, 0.16)",
-                        backdropFilter: "blur(6px)",
-                      }}
+                  >
+                    <Stack
+                      alignItems="center"
+                      spacing={1}
                     >
-                      <PlayCircleRoundedIcon />
-                    </Box>
-                  )}
-                </Box>
-
-                <CardContent sx={{ p: 2.5 }}>
-                  <Stack spacing={1.75}>
-                    <Box>
-                      <Typography variant="h6" fontWeight={800}>
-                        {camera.name}
-                      </Typography>
-
-                      <Typography variant="body2" color="text.secondary">
-                        {camera.model}
-                      </Typography>
-                    </Box>
-
-                    <Stack direction="row" alignItems="center" spacing={0.75}>
-                      <LocationOnRoundedIcon
+                      <VideocamRoundedIcon
                         sx={{
-                          fontSize: 18,
-                          color: "text.secondary",
+                          fontSize: 54,
+                          opacity: 0.9,
                         }}
                       />
 
-                      <Typography variant="body2" color="text.secondary">
-                        {camera.location}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          opacity: 0.8,
+                        }}
+                      >
+                        Aperçu vidéo indisponible
                       </Typography>
                     </Stack>
 
                     <Chip
-                      label={
-                        camera.online
-                          ? "Connexion disponible"
-                          : "Connexion à vérifier"
+                      icon={
+                        camera.integrated &&
+                        camera.available ? (
+                          <WifiRoundedIcon />
+                        ) : (
+                          <WifiOffRoundedIcon />
+                        )
                       }
-                      color={camera.online ? "success" : "error"}
+                      label={
+                        !camera.integrated
+                          ? "Non intégrée"
+                          : camera.available
+                          ? "Disponible"
+                          : "Indisponible"
+                      }
+                      color={
+                        !camera.integrated
+                          ? "default"
+                          : camera.available
+                          ? "success"
+                          : "error"
+                      }
                       size="small"
-                      variant="outlined"
-                      sx={{ alignSelf: "flex-start" }}
+                      sx={{
+                        position:
+                          "absolute",
+                        top: 12,
+                        right: 12,
+                      }}
                     />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                  </Box>
+
+                  <CardContent
+                    sx={{ p: 2.5 }}
+                  >
+                    <Stack spacing={1.75}>
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          fontWeight={800}
+                        >
+                          {camera.name}
+                        </Typography>
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          {camera.model}
+                        </Typography>
+                      </Box>
+
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.75}
+                      >
+                        <LocationOnRoundedIcon
+                          sx={{
+                            fontSize: 18,
+                            color:
+                              "text.secondary",
+                          }}
+                        />
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          {camera.location}
+                        </Typography>
+                      </Stack>
+
+                      <Chip
+                        label={
+                          !camera.integrated
+                            ? "À intégrer"
+                            : camera.available
+                            ? "Connexion disponible"
+                            : "Connexion à vérifier"
+                        }
+                        color={
+                          !camera.integrated
+                            ? "default"
+                            : camera.available
+                            ? "success"
+                            : "error"
+                        }
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          alignSelf:
+                            "flex-start",
+                        }}
+                      />
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )
+          )}
         </Grid>
 
-        <Typography variant="body2" color="text.secondary">
-          Pour éviter de surcharger le Raspberry Pi, les enregistrements vidéo
-          ne seront pas stockés directement dans DomoCenter.
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
+          Les états affichés proviennent directement de Home Assistant.
+          Les enregistrements vidéo ne sont pas stockés dans DomoCenter.
         </Typography>
       </Stack>
     </Box>

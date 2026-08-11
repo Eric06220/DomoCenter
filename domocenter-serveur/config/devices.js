@@ -397,6 +397,24 @@ const devices = {
       entityId: "camera.atelier_profile_000",
     },
   ],
-};
+
+  cameraRecharge: {
+    name: "Recharge caméras",
+    location: "Entrée + Allée",
+    entityId:
+      "switch.alimentation_cameras_switch_1",
+  },
+
+  climateDevices: [
+    {
+      id: "clim-salon",
+      name: "Climatisation salon",
+      location: "Salon",
+      brand: "Samsung",
+      entityId:
+        "climate.salon_climatiseur_de_piece",
+    },
+  ],
+  };
 
 module.exports = devices;

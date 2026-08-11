@@ -24,6 +24,7 @@ import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
 import CircleIcon from "@mui/icons-material/Circle";
+import AcUnitRoundedIcon from "@mui/icons-material/AcUnitRounded";
 
 import DashboardPage from "./pages/DashboardPage";
 import LightingPage from "./pages/LightingPage";
@@ -31,8 +32,8 @@ import CameraPage from "./pages/CameraPage";
 import SecurityPage from "./pages/SecurityPage";
 import EnergyPage from "./pages/EnergyPage";
 import SettingsPage from "./pages/SettingsPage";
-
 import SupervisionPage from "./pages/SupervisionPage";
+import ClimatePage from "./pages/ClimatePage";
 
 const drawerWidth = 260;
 
@@ -62,7 +63,11 @@ const menuItems = [
     path: "/energy",
     icon: <BoltRoundedIcon />,
   },
-  
+  {
+    label: "Climatisation",
+    path: "/climate",
+    icon: <AcUnitRoundedIcon />,
+  },
   {
     label: "Supervision",
     path: "/supervision",
@@ -291,6 +296,7 @@ function App() {
             <Route path="/cameras" element={<CameraPage />} />
             <Route path="/security" element={<SecurityPage />} />
             <Route path="/energy" element={<EnergyPage />} />
+            <Route path="/climate" element={<ClimatePage />} />
             <Route path="/supervision" element={<SupervisionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

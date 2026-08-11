@@ -16,6 +16,10 @@ const {
 } = require("./accessRoutes");
 
 const {
+  createClimateRouter,
+} = require("./climateRoutes");
+
+const {
   buildClimateData,
 } = require("./services/climateService");
 
@@ -39,6 +43,10 @@ const {
 const {
   buildCameraData,
 } = require("./services/cameraService");
+
+const {
+  buildClimateControlData,
+} = require("./services/climateControlService");
 
 const {
   buildBatteryData,
@@ -117,6 +125,7 @@ const dashboardService =
     entityConfiguration,
 
     buildClimateData,
+    buildClimateControlData,
     buildOpeningData,
     buildWaterLeakData,
     buildSmokeData,
@@ -164,6 +173,13 @@ const accessRouter =
     dashboardService,
   });
 
+const climateRouter =
+  createClimateRouter({
+    homeAssistantService,
+    entityConfiguration,
+    dashboardService,
+  });
+
 const energyControlService =
   createEnergyControlService({
     entityConfiguration,
@@ -195,6 +211,11 @@ app.use(
 app.use(
   "/api/access",
   accessRouter
+);
+
+app.use(
+  "/api/climate",
+  climateRouter
 );
 
 function getErrorDetails(

@@ -1,5 +1,6 @@
 function buildCameraData({
   cameraDevices = [],
+  cameraRecharge = null,
   entities,
   findEntity,
   isEntityAvailable,
@@ -65,15 +66,73 @@ function buildCameraData({
         camera.available === false
     );
 
+  let recharge = null;
+
+  if (
+    cameraRecharge &&
+    typeof cameraRecharge.entityId === "string"
+  ) {
+    const rechargeEntity = findEntity(
+      entities,
+      cameraRecharge.entityId
+    );
+
+    const rechargeAvailable =
+      isEntityAvailable(
+        rechargeEntity
+      );
+
+    recharge = {
+      name:
+        cameraRecharge.name ??
+        "Recharge caméras",
+
+      location:
+        cameraRecharge.location ??
+        "Entrée + Allée",
+
+      entityId:
+        cameraRecharge.entityId,
+
+      available:
+        rechargeAvailable,
+
+      active:
+        rechargeAvailable
+          ? rechargeEntity.state === "on"
+          : null,
+
+      state:
+        rechargeAvailable
+          ? rechargeEntity.state
+          : "unavailable",
+
+      lastUpdated:
+        rechargeEntity?.last_updated ??
+        null,
+    };
+  }
+
   return {
-    totalConfigured: cameras.length,
-    integrated: integratedCameras.length,
-    available: availableCameras.length,
-    unavailable: unavailableCameras.length,
+    totalConfigured:
+      cameras.length,
+
+    integrated:
+      integratedCameras.length,
+
+    available:
+      availableCameras.length,
+
+    unavailable:
+      unavailableCameras.length,
+
     notIntegrated:
       cameras.length -
       integratedCameras.length,
+
     cameras,
+
+    recharge,
   };
 }
 
