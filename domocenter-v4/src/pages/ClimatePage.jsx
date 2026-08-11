@@ -227,7 +227,7 @@ function ClimatePage() {
         },
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={1}>
         <Stack
           direction={{
             xs: "column",
@@ -238,7 +238,7 @@ function ClimatePage() {
             sm: "center",
           }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={1.25}
         >
           <Box>
             <Typography
@@ -303,7 +303,7 @@ function ClimatePage() {
           <>
             <Grid
               container
-              spacing={2}
+              spacing={1}
             >
               <Grid
                 size={{
@@ -312,15 +312,15 @@ function ClimatePage() {
                 }}
               >
                 <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2}>
+                  <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
+                    <Stack spacing={1}>
                       <Box
                         sx={{
-                          width: 52,
-                          height: 52,
+                          width: 38,
+                          height: 38,
                           display: "grid",
                           placeItems: "center",
-                          borderRadius: 3,
+                          borderRadius: 2,
                           bgcolor:
                             device.isOn
                               ? "primary.main"
@@ -382,16 +382,55 @@ function ClimatePage() {
                   md: 4,
                 }}
               >
-                <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    minHeight: {
+                      xs: 120,
+                      md: "100%",
+                    },
+                  }}
+                >
+                  <CardContent
+                    sx={{
+                      p: 1.25,
+                      "&:last-child": {
+                        pb: 1.25,
+                      },
+                      height: "auto",
+                      boxSizing: "border-box",
+                      display: "flex",
+                      alignItems: {
+                        xs: "center",
+                        md: "flex-start",
+                      },
+                    }}
+                  >
+                    <Stack
+                      spacing={1}
+                      alignItems="center"
+                      sx={{
+                        width: "100%",
+                        textAlign: "center",
+                      }}
+                    >
                       <Box
                         sx={{
-                          width: 52,
-                          height: 52,
+                          width: {
+                            xs: 28,
+                            md: 38,
+                          },
+                          height: {
+                            xs: 28,
+                            md: 38,
+                          },
+                          transform: {
+                            xs: "translateY(-2px)",
+                            md: "none",
+                          },
                           display: "grid",
                           placeItems: "center",
-                          borderRadius: 3,
+                          borderRadius: 2,
                           bgcolor: "secondary.main",
                           color: "white",
                         }}
@@ -409,8 +448,8 @@ function ClimatePage() {
                         </Typography>
 
                         <Typography
-                          variant="h3"
-                          fontWeight={800}
+                          variant="h5"
+                          fontWeight={900}
                         >
                           {Number.isFinite(
                             device.currentTemperature
@@ -431,8 +470,8 @@ function ClimatePage() {
                 }}
               >
                 <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2}>
+                  <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
+                    <Stack spacing={1}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -442,8 +481,8 @@ function ClimatePage() {
                       </Typography>
 
                       <Typography
-                        variant="h3"
-                        fontWeight={800}
+                        variant="h5"
+                        fontWeight={900}
                       >
                         {Number.isFinite(
                           device.targetTemperature
@@ -454,7 +493,7 @@ function ClimatePage() {
 
                       <Stack
                         direction="row"
-                        spacing={1}
+                        spacing={0.75}
                       >
                         <Button
                           variant="outlined"
@@ -498,7 +537,7 @@ function ClimatePage() {
 
             <Grid
               container
-              spacing={2}
+              spacing={1}
             >
               <Grid
                 size={{
@@ -507,8 +546,8 @@ function ClimatePage() {
                 }}
               >
                 <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2}>
+                  <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
+                    <Stack spacing={1}>
                       <Typography
                         variant="h6"
                         fontWeight={800}
@@ -516,7 +555,7 @@ function ClimatePage() {
                         Mode
                       </Typography>
 
-                      <FormControl fullWidth>
+                      <FormControl fullWidth size="small">
                         <InputLabel>
                           Mode
                         </InputLabel>
@@ -562,8 +601,8 @@ function ClimatePage() {
                 }}
               >
                 <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack spacing={2}>
+                  <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
+                    <Stack spacing={1}>
                       <Stack
                         direction="row"
                         spacing={1}
@@ -579,7 +618,7 @@ function ClimatePage() {
                         </Typography>
                       </Stack>
 
-                      <FormControl fullWidth>
+                      <FormControl fullWidth size="small">
                         <InputLabel>
                           Vitesse
                         </InputLabel>
@@ -625,7 +664,7 @@ function ClimatePage() {
                 }}
               >
                 <Card sx={{ height: "100%" }}>
-                  <CardContent sx={{ p: 2.5 }}>
+                  <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
                     <Stack spacing={2}>
                       <Stack
                         direction="row"
@@ -642,7 +681,7 @@ function ClimatePage() {
                         </Typography>
                       </Stack>
 
-                      <FormControl fullWidth>
+                      <FormControl fullWidth size="small">
                         <InputLabel>
                           Direction
                         </InputLabel>
@@ -683,11 +722,6 @@ function ClimatePage() {
               </Grid>
             </Grid>
 
-            <Alert severity="info">
-              Les fonctions affichées ici ont été testées avec le climatiseur Samsung :
-              marche/arrêt, consigne, mode, ventilation et oscillation.
-              Les presets Samsung ne sont pas affichés pour le moment.
-            </Alert>
           </>
         )}
       </Stack>
