@@ -11,6 +11,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 
 import BatterySummary from "../components/dashboard/BatterySummary";
 import CameraSummary from "../components/dashboard/CameraSummary";
+import ClimateControlSummary from "../components/dashboard/ClimateControlSummary";
 import ClimateSection from "../components/dashboard/ClimateSection";
 import EnergySummary from "../components/dashboard/EnergySummary";
 import LightingSummary from "../components/dashboard/LightingSummary";
@@ -29,6 +30,9 @@ function DashboardPage() {
 
   const climateZones =
     dashboard?.climate?.zones ?? [];
+
+  const climateControl =
+    dashboard?.climateControl ?? null;
 
   const openings =
     dashboard?.security?.openings ?? null;
@@ -59,6 +63,16 @@ function DashboardPage() {
     services?.domoCenter?.online !== false &&
     services?.tuya?.online !== false &&
     services?.internet?.online !== false;
+
+  const gridItemSx = {
+    display: "flex",
+    minWidth: 0,
+  };
+
+  const cardWrapperSx = {
+    width: "100%",
+    minWidth: 0,
+  };
 
   return (
     <Box
@@ -121,10 +135,16 @@ function DashboardPage() {
           </Alert>
         )}
 
+        {/* CLIMAT - PLEINE LARGEUR */}
+
         <ClimateSection
           zones={climateZones}
           loading={loading}
         />
+
+        {/* LIGNE PRINCIPALE :
+            CLIMATISATION À GAUCHE
+            OUVERTURES + ÉCLAIRAGE À DROITE */}
 
         <Grid
           container
@@ -136,132 +156,58 @@ function DashboardPage() {
               xs: 12,
               md: 6,
             }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
+            sx={gridItemSx}
           >
             <Box
               sx={{
-                width: "100%",
-                minWidth: 0,
+                ...cardWrapperSx,
+                display: "flex",
+
+                "& > *": {
+                  width: "100%",
+                },
               }}
+            >
+              <ClimateControlSummary
+                climateControl={climateControl}
+                loading={loading}
+              />
+            </Box>
+          </Grid>
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+            sx={gridItemSx}
+          >
+            <Stack
+              spacing={2}
+              sx={cardWrapperSx}
             >
               <OpeningSection
                 openings={openings}
                 loading={loading}
               />
-            </Box>
-          </Grid>
 
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
-          >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
               <LightingSummary
                 lighting={lighting}
                 loading={loading}
               />
-            </Box>
+            </Stack>
           </Grid>
+
+          {/* FUMÉE */}
 
           <Grid
             size={{
               xs: 12,
               md: 6,
             }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
+            sx={gridItemSx}
           >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
-              <EnergySummary
-                energy={energy}
-                loading={loading}
-              />
-            </Box>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
-          >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
-              <SystemSummary
-                services={services}
-                loading={loading}
-              />
-            </Box>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
-          >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
-              <WaterLeakSummary
-                waterLeaks={waterLeaks}
-                loading={loading}
-              />
-            </Box>
-          </Grid>
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6,
-            }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
-          >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
+            <Box sx={cardWrapperSx}>
               <SmokeSummary
                 smoke={smoke}
                 loading={loading}
@@ -269,22 +215,33 @@ function DashboardPage() {
             </Box>
           </Grid>
 
+          {/* INONDATION */}
+
           <Grid
             size={{
               xs: 12,
               md: 6,
             }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
+            sx={gridItemSx}
           >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
+            <Box sx={cardWrapperSx}>
+              <WaterLeakSummary
+                waterLeaks={waterLeaks}
+                loading={loading}
+              />
+            </Box>
+          </Grid>
+
+          {/* CAMÉRAS */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+            sx={gridItemSx}
+          >
+            <Box sx={cardWrapperSx}>
               <CameraSummary
                 cameras={cameras}
                 loading={loading}
@@ -292,24 +249,52 @@ function DashboardPage() {
             </Box>
           </Grid>
 
+          {/* ÉNERGIE */}
+
           <Grid
             size={{
               xs: 12,
               md: 6,
             }}
-            sx={{
-              display: "flex",
-              minWidth: 0,
-            }}
+            sx={gridItemSx}
           >
-            <Box
-              sx={{
-                width: "100%",
-                minWidth: 0,
-              }}
-            >
+            <Box sx={cardWrapperSx}>
+              <EnergySummary
+                energy={energy}
+                loading={loading}
+              />
+            </Box>
+          </Grid>
+
+          {/* BATTERIES */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+            sx={gridItemSx}
+          >
+            <Box sx={cardWrapperSx}>
               <BatterySummary
                 batteries={batteries}
+                loading={loading}
+              />
+            </Box>
+          </Grid>
+
+          {/* SYSTÈME */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+            sx={gridItemSx}
+          >
+            <Box sx={cardWrapperSx}>
+              <SystemSummary
+                services={services}
                 loading={loading}
               />
             </Box>
