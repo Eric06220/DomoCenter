@@ -113,7 +113,15 @@ function CameraPage() {
 
         {recharge && (
           <Card>
-            <CardContent sx={{ p: 2.5 }}>
+            <CardContent
+              sx={{
+                px: 1.5,
+                py: 0.4,
+                "&:last-child": {
+                  pb: 0.4,
+                },
+              }}
+            >
               <Stack
                 direction={{
                   xs: "column",
@@ -325,10 +333,32 @@ function CameraPage() {
                   </Box>
 
                   <CardContent
-                    sx={{ p: 2.5 }}
+                    sx={{
+                      px: 1.5,
+                      pt: 0.15,
+                      pb: 0.15,
+                      "&:last-child": {
+                        pb: 0.15,
+                      },
+                    }}
                   >
-                    <Stack spacing={1.75}>
-                      <Box>
+                    <Stack
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gridTemplateRows: "auto auto",
+                        height: 58,
+                        columnGap: 1,
+                        rowGap: 0,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          justifySelf: "start",
+                          textAlign: "left",
+                        }}
+                      >
                         <Typography
                           variant="h6"
                           fontWeight={800}
@@ -348,6 +378,11 @@ function CameraPage() {
                         direction="row"
                         alignItems="center"
                         spacing={0.75}
+                        sx={{
+                          justifySelf: "start",
+                          alignSelf: "start",
+                          mt: 0.8,
+                        }}
                       >
                         <LocationOnRoundedIcon
                           sx={{
@@ -365,28 +400,7 @@ function CameraPage() {
                         </Typography>
                       </Stack>
 
-                      <Chip
-                        label={
-                          !camera.integrated
-                            ? "À intégrer"
-                            : camera.available
-                            ? "Connexion disponible"
-                            : "Connexion à vérifier"
-                        }
-                        color={
-                          !camera.integrated
-                            ? "default"
-                            : camera.available
-                            ? "success"
-                            : "error"
-                        }
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          alignSelf:
-                            "flex-start",
-                        }}
-                      />
+                      
                     </Stack>
                   </CardContent>
                 </Card>

@@ -86,7 +86,7 @@ function CameraSummary({
             </Typography>
           </Stack>
         ) : (
-          <Stack spacing={1}>
+          <Stack spacing={0.5}>
             <Stack
               direction="row"
               alignItems="center"
