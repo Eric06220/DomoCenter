@@ -1,6 +1,7 @@
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -10,14 +11,66 @@ import {
 } from "@mui/material";
 
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
-import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
-import WifiRoundedIcon from "@mui/icons-material/WifiRounded";
-import WifiOffRoundedIcon from "@mui/icons-material/WifiOffRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
 import BatteryChargingFullRoundedIcon from "@mui/icons-material/BatteryChargingFullRounded";
 import PowerOffRoundedIcon from "@mui/icons-material/PowerOffRounded";
 
 import useHomeAssistant from "../hooks/useHomeAssistant";
+
+
+function getCameraApplication(camera) {
+  const model =
+    camera?.model?.toLowerCase() ?? "";
+
+  if (model.includes("anran")) {
+    return {
+      name: "ANRAN",
+      shortcutUrl:
+        "shortcuts://run-shortcut?name=ANRAN",
+    };
+  }
+
+  if (model.includes("icam365")) {
+    return {
+      name: "iCam365",
+      shortcutUrl:
+        "shortcuts://run-shortcut?name=iCam365",
+    };
+  }
+
+  if (model.includes("hi3516")) {
+    return {
+      name: "XMEye",
+      shortcutUrl:
+        "shortcuts://run-shortcut?name=XMEye",
+    };
+  }
+
+  return {
+    name: "Application",
+    shortcutUrl: null,
+  };
+}
+
+
+function isIOSDevice() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  return (
+    /iPhone|iPad|iPod/i.test(
+      navigator.userAgent
+    ) ||
+    (
+      navigator.platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
+
 
 function CameraPage() {
   const {
@@ -32,20 +85,12 @@ function CameraPage() {
   const cameras =
     camerasData?.cameras ?? [];
 
-  const integrated =
-    camerasData?.integrated ?? 0;
-
-  const available =
-    camerasData?.available ?? 0;
-
-  const unavailable =
-    camerasData?.unavailable ?? 0;
-
-  const notIntegrated =
-    camerasData?.notIntegrated ?? 0;
-
   const recharge =
     camerasData?.recharge ?? null;
+
+  const iosDevice =
+    isIOSDevice();
+
 
   return (
     <Box
@@ -56,20 +101,37 @@ function CameraPage() {
         },
       }}
     >
-      <Stack spacing={3}>
+      <Stack
+        spacing={{
+          xs: 1.5,
+          md: 2,
+        }}
+      >
+        {/* EN-TÊTE */}
+
         <Stack
           direction={{
             xs: "column",
             sm: "row",
           }}
           alignItems={{
-            xs: "flex-start",
+            xs: "center",
             sm: "center",
           }}
           justifyContent="space-between"
-          spacing={2}
+          spacing={{
+            xs: 1,
+            sm: 2,
+          }}
         >
-          <Box>
+          <Box
+            sx={{
+              textAlign: {
+                xs: "center",
+                sm: "left",
+              },
+            }}
+          >
             <Typography
               variant="h4"
               fontWeight={800}
@@ -81,27 +143,30 @@ function CameraPage() {
               variant="body1"
               color="text.secondary"
             >
-              Surveillance des caméras extérieures et intérieures
+              Accès aux applications de surveillance
             </Typography>
           </Box>
 
           <Chip
             icon={
-              <CheckCircleRoundedIcon />
+              <VideocamRoundedIcon />
             }
-            label={`${available} caméra${
-              available > 1 ? "s" : ""
-            } disponible${
-              available > 1 ? "s" : ""
-            } sur ${integrated}`}
-            color={
-              unavailable === 0
-                ? "success"
-                : "warning"
-            }
+            label={`${cameras.length} caméra${
+              cameras.length > 1
+                ? "s"
+                : ""
+            }`}
             variant="outlined"
+            sx={{
+              minWidth: {
+                xs: 150,
+                sm: "auto",
+              },
+              fontWeight: 700,
+            }}
           />
         </Stack>
+
 
         {error && (
           <Alert severity="error">
@@ -109,16 +174,26 @@ function CameraPage() {
           </Alert>
         )}
 
+
         {/* RECHARGE CAMÉRAS */}
 
         {recharge && (
           <Card>
             <CardContent
               sx={{
-                px: 1.5,
-                py: 0.4,
+                px: {
+                  xs: 1.5,
+                  sm: 2,
+                },
+                py: {
+                  xs: 1,
+                  sm: 0.8,
+                },
                 "&:last-child": {
-                  pb: 0.4,
+                  pb: {
+                    xs: 1,
+                    sm: 0.8,
+                  },
                 },
               }}
             >
@@ -128,21 +203,30 @@ function CameraPage() {
                   sm: "row",
                 }}
                 alignItems={{
-                  xs: "flex-start",
+                  xs: "stretch",
                   sm: "center",
                 }}
                 justifyContent="space-between"
-                spacing={2}
+                spacing={{
+                  xs: 1,
+                  sm: 2,
+                }}
               >
                 <Stack
                   direction="row"
                   alignItems="center"
-                  spacing={2}
+                  spacing={1.5}
                 >
                   <Box
                     sx={{
-                      width: 52,
-                      height: 52,
+                      width: {
+                        xs: 42,
+                        sm: 44,
+                      },
+                      height: {
+                        xs: 42,
+                        sm: 44,
+                      },
                       display: "grid",
                       placeItems: "center",
                       borderRadius: 3,
@@ -158,6 +242,7 @@ function CameraPage() {
                         recharge.active
                           ? "white"
                           : "text.secondary",
+                      flexShrink: 0,
                     }}
                   >
                     {recharge.active ? (
@@ -204,164 +289,196 @@ function CameraPage() {
                       ? "filled"
                       : "outlined"
                   }
+                  sx={{
+                    fontWeight: 700,
+                  }}
                 />
               </Stack>
             </CardContent>
           </Card>
         )}
 
-        {!error && !loading && (
-          <Alert severity="info">
-            {notIntegrated > 0
-              ? `${notIntegrated} caméra${
-                  notIntegrated > 1 ? "s" : ""
-                } ne ${
-                  notIntegrated > 1
-                    ? "sont"
-                    : "est"
-                } pas encore intégrée${
-                  notIntegrated > 1
-                    ? "s"
-                    : ""
-                } dans Home Assistant.`
-              : "Toutes les caméras configurées sont intégrées dans Home Assistant."}
-          </Alert>
+
+        {loading && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Chargement des caméras…
+          </Typography>
         )}
+
+
+        {/* CARTES CAMÉRAS */}
 
         <Grid
           container
-          spacing={2}
+          spacing={{
+            xs: 1,
+            md: 1.5,
+          }}
         >
-          {cameras.map(
-            (camera) => (
+          {cameras.map((camera) => {
+            const application =
+              getCameraApplication(
+                camera
+              );
+
+            return (
               <Grid
                 key={camera.id}
                 size={{
                   xs: 12,
-                  sm: 6,
-                  lg: 4,
+                  md: 6,
                 }}
               >
                 <Card
+                  variant="outlined"
                   sx={{
                     height: "100%",
-                    overflow: "hidden",
-
-                    borderColor:
-                      camera.integrated &&
-                      camera.available
-                        ? "success.light"
-                        : camera.integrated
-                        ? "error.light"
-                        : "divider",
-
-                    opacity:
-                      camera.integrated &&
-                      camera.available === false
-                        ? 0.7
-                        : 1,
                   }}
                 >
-                  <Box
-                    sx={{
-                      position:
-                        "relative",
-                      minHeight: 190,
-                      display: "grid",
-                      placeItems:
-                        "center",
-                      bgcolor:
-                        camera.integrated &&
-                        camera.available
-                          ? "#0f172a"
-                          : "#374151",
-                      color: "white",
-                    }}
-                  >
-                    <Stack
-                      alignItems="center"
-                      spacing={1}
-                    >
-                      <VideocamRoundedIcon
-                        sx={{
-                          fontSize: 54,
-                          opacity: 0.9,
-                        }}
-                      />
-
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          opacity: 0.8,
-                        }}
-                      >
-                        Aperçu vidéo indisponible
-                      </Typography>
-                    </Stack>
-
-                    <Chip
-                      icon={
-                        camera.integrated &&
-                        camera.available ? (
-                          <WifiRoundedIcon />
-                        ) : (
-                          <WifiOffRoundedIcon />
-                        )
-                      }
-                      label={
-                        !camera.integrated
-                          ? "Non intégrée"
-                          : camera.available
-                          ? "Disponible"
-                          : "Indisponible"
-                      }
-                      color={
-                        !camera.integrated
-                          ? "default"
-                          : camera.available
-                          ? "success"
-                          : "error"
-                      }
-                      size="small"
-                      sx={{
-                        position:
-                          "absolute",
-                        top: 12,
-                        right: 12,
-                      }}
-                    />
-                  </Box>
-
                   <CardContent
                     sx={{
-                      px: 1.5,
-                      pt: 0.15,
-                      pb: 0.15,
+                      px: {
+                        xs: 1.25,
+                        sm: 1.5,
+                      },
+                      py: {
+                        xs: 0.75,
+                        sm: 0.9,
+                      },
                       "&:last-child": {
-                        pb: 0.15,
+                        pb: {
+                          xs: 0.75,
+                          sm: 0.9,
+                        },
                       },
                     }}
                   >
-                    <Stack
+                    <Box
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gridTemplateRows: "auto auto",
-                        height: 58,
-                        columnGap: 1,
-                        rowGap: 0,
+
+                        gridTemplateColumns: {
+                          xs: "auto minmax(0, 1fr) 105px",
+                          sm: "auto minmax(0, 1fr) 90px 155px",
+                        },
+
+                        gridTemplateRows: {
+                          xs: "auto auto",
+                          sm: "auto",
+                        },
+
+                        gridTemplateAreas: {
+                          xs: `
+                            "icon name app"
+                            "icon model action"
+                          `,
+                          sm: `
+                            "icon camera app action"
+                          `,
+                        },
+
                         alignItems: "center",
+
+                        columnGap: {
+                          xs: 1,
+                          sm: 1.25,
+                        },
+
+                        rowGap: {
+                          xs: 0.15,
+                          sm: 0,
+                        },
+
+                        minHeight: {
+                          xs: 58,
+                          sm: 56,
+                        },
                       }}
                     >
+                      {/* ICÔNE */}
+
                       <Box
+                        gridArea="icon"
                         sx={{
-                          justifySelf: "start",
-                          textAlign: "left",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent:
+                            "center",
+                        }}
+                      >
+                        <VideocamRoundedIcon
+                          sx={{
+                            fontSize: {
+                              xs: 27,
+                              sm: 25,
+                            },
+                            color:
+                              "text.secondary",
+                          }}
+                        />
+                      </Box>
+
+
+                      {/* NOM MOBILE */}
+
+                      <Typography
+                        gridArea="name"
+                        variant="h6"
+                        fontWeight={800}
+                        noWrap
+                        sx={{
+                          display: {
+                            xs: "block",
+                            sm: "none",
+                          },
+                          lineHeight: 1.15,
+                        }}
+                      >
+                        {camera.name}
+                      </Typography>
+
+
+                      {/* MODÈLE MOBILE */}
+
+                      <Typography
+                        gridArea="model"
+                        variant="body2"
+                        color="text.secondary"
+                        noWrap
+                        sx={{
+                          display: {
+                            xs: "block",
+                            sm: "none",
+                          },
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {camera.model}
+                      </Typography>
+
+
+                      {/* NOM + MODÈLE PC */}
+
+                      <Box
+                        gridArea="camera"
+                        sx={{
+                          display: {
+                            xs: "none",
+                            sm: "block",
+                          },
+                          minWidth: 0,
                         }}
                       >
                         <Typography
                           variant="h6"
                           fontWeight={800}
+                          noWrap
+                          sx={{
+                            lineHeight: 1.15,
+                          }}
                         >
                           {camera.name}
                         </Typography>
@@ -369,56 +486,134 @@ function CameraPage() {
                         <Typography
                           variant="body2"
                           color="text.secondary"
+                          noWrap
+                          sx={{
+                            lineHeight: 1.25,
+                            mt: 0.25,
+                          }}
                         >
                           {camera.model}
                         </Typography>
                       </Box>
 
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={0.75}
+
+                      {/* APPLICATION */}
+
+                      <Box
+                        gridArea="app"
                         sx={{
-                          justifySelf: "start",
-                          alignSelf: "start",
-                          mt: 0.8,
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "flex-end",
+                          alignSelf: "end",
                         }}
                       >
-                        <LocationOnRoundedIcon
+                        <Chip
+                          label={
+                            application.name
+                          }
+                          size="small"
                           sx={{
-                            fontSize: 18,
-                            color:
-                              "text.secondary",
+                            fontWeight: 700,
+                            height: 26,
                           }}
                         />
+                      </Box>
 
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          {camera.location}
-                        </Typography>
-                      </Stack>
 
-                      
-                    </Stack>
+                      {/* ACTION */}
+
+                      <Box
+                        gridArea="action"
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "flex-start",
+                          alignSelf: "start",
+                          minWidth: 0,
+                          transform: {
+                            xs: "translateX(20px)",
+                            sm: "none",
+                          },
+                        }}
+                      >
+                        {iosDevice &&
+                        application.shortcutUrl ? (
+                          <Button
+                            component="a"
+                            href={
+                              application.shortcutUrl
+                            }
+                            variant="contained"
+                            size="small"
+                            
+                            endIcon={
+                              <ChevronRightRoundedIcon />
+                            }
+                            sx={{
+                              minWidth: 82,
+                              height: 28,
+                              px: 1,
+                              py: 0,
+                              borderRadius: 2,
+                              textTransform: "none",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                              fontSize: "0.78rem",
+                            }}
+                          >
+                            Ouvrir l'application
+                          </Button>
+                        ) : (
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="center"
+                            spacing={0.5}
+                            sx={{
+                              color:
+                                "text.secondary",
+                            }}
+                          >
+                            <PhoneIphoneRoundedIcon
+                              sx={{
+                                fontSize: 17,
+                              }}
+                            />
+
+                            <Typography
+                              variant="caption"
+                              fontWeight={600}
+                              noWrap
+                            >
+                              Accès iPhone/iPad
+                            </Typography>
+                          </Stack>
+                        )}
+                      </Box>
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
-            )
-          )}
+            );
+          })}
         </Grid>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-        >
-          Les états affichés proviennent directement de Home Assistant.
-          Les enregistrements vidéo ne sont pas stockés dans DomoCenter.
-        </Typography>
+
+        {!loading &&
+          !error &&
+          cameras.length === 0 && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Aucune caméra configurée.
+            </Typography>
+          )}
       </Stack>
     </Box>
   );
 }
+
 
 export default CameraPage;

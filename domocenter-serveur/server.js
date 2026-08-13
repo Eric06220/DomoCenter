@@ -691,6 +691,7 @@ app.use(
 
 app.listen(
   port,
+  "0.0.0.0",
   () => {
     console.log(
       `DomoCenter Server démarré sur http://localhost:${port}`
