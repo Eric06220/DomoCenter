@@ -8,6 +8,7 @@ import {
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ComputerRoundedIcon from "@mui/icons-material/ComputerRounded";
 import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import { Link as RouterLink } from "react-router-dom";
 
@@ -26,11 +27,19 @@ function SystemSummary({
 
   const servicesAvailable = serviceList.length > 0;
 
+  const tuyaWarning =
+    services?.tuya?.warning === true;
+
+  const tuyaCritical =
+    services?.tuya?.critical === true;
+
   const healthy =
     servicesAvailable &&
     serviceList.every(
       (service) => service.online !== false
-    );
+    ) &&
+    !tuyaWarning &&
+    !tuyaCritical;
 
   return (
     <Box
@@ -73,6 +82,28 @@ function SystemSummary({
               color="text.secondary"
             >
               État inconnu
+            </Typography>
+          </Stack>
+        ) : tuyaWarning ? (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+          >
+            <WarningAmberRoundedIcon
+              sx={{
+                color: "warning.main",
+                fontSize: 20,
+              }}
+            />
+
+            <Typography
+              variant="body1"
+              color="warning.main"
+              fontWeight={700}
+            >
+              {services?.tuya?.healthLabel ??
+                "Données Tuya à vérifier"}
             </Typography>
           </Stack>
         ) : healthy ? (

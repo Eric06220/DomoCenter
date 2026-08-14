@@ -69,6 +69,10 @@ const {
 } = require("./services/servicesStatusService");
 
 const {
+  buildTuyaHealth,
+} = require("./services/tuyaHealthService");
+
+const {
   createAlertService,
 } = require("./services/alertService");
 
@@ -135,6 +139,7 @@ const dashboardService =
     buildBatteryData,
     buildInfrastructureData,
     buildServicesStatus,
+    buildTuyaHealth,
 
     findEntity,
     isEntityAvailable,

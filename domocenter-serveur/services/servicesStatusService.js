@@ -1,8 +1,12 @@
 function buildServicesStatus({
   homeAssistantConnected,
   tuyaLatestUpdate,
+  tuyaHealth,
   generatedAt,
 }) {
+  const tuyaStatus =
+    tuyaHealth?.status ?? "unknown";
+
   return {
     homeAssistant: {
       online: homeAssistantConnected,
@@ -15,9 +19,32 @@ function buildServicesStatus({
     },
 
     tuya: {
-      online: Boolean(tuyaLatestUpdate),
+      online:
+        Boolean(tuyaLatestUpdate) &&
+        tuyaStatus !== "critical",
+
       label: "Tuya",
-      lastUpdate: tuyaLatestUpdate,
+
+      status: tuyaStatus,
+
+      healthLabel:
+        tuyaHealth?.label ??
+        "État Tuya inconnu",
+
+      lastUpdate:
+        tuyaLatestUpdate,
+
+      warning:
+        tuyaStatus === "warning",
+
+      critical:
+        tuyaStatus === "critical",
+
+      witnesses:
+        tuyaHealth?.witnesses ?? [],
+
+      checkedAt:
+        tuyaHealth?.checkedAt ?? null,
     },
 
     internet: {

@@ -14,6 +14,7 @@ function createDashboardService({
   buildBatteryData,
   buildInfrastructureData,
   buildServicesStatus,
+  buildTuyaHealth,
   findEntity,
   isEntityAvailable,
   readNumericEntity,
@@ -21,7 +22,6 @@ function createDashboardService({
   cacheDurationMs = 10_000,
   homeAssistantUrl,
 }) {
-
   let cache = {
     data: null,
     createdAt: 0,
@@ -69,6 +69,11 @@ function createDashboardService({
 
     const latestUpdate =
       getLatestUpdateTimestamp(entities);
+
+    const tuyaHealth =
+      buildTuyaHealth({
+        entities,
+      });
 
     const climateZones = buildClimateData(
       entityConfiguration,
@@ -123,6 +128,8 @@ function createDashboardService({
           connected: true,
           latestDataUpdate:
             latestUpdate,
+          health:
+            tuyaHealth,
         },
 
         cache: {
@@ -178,16 +185,17 @@ function createDashboardService({
         findEntity,
         isEntityAvailable,
       }),
-      
-      climateControl: buildClimateControlData({
-        climateDevices:
-          entityConfiguration
-            .climateDevices ?? [],
 
-        entities,
-        findEntity,
-        isEntityAvailable,
-      }),
+      climateControl:
+        buildClimateControlData({
+          climateDevices:
+            entityConfiguration
+              .climateDevices ?? [],
+
+          entities,
+          findEntity,
+          isEntityAvailable,
+        }),
 
       infrastructure:
         buildInfrastructureData(
@@ -200,6 +208,7 @@ function createDashboardService({
         homeAssistantConnected: true,
         tuyaLatestUpdate:
           latestUpdate,
+        tuyaHealth,
         generatedAt,
       }),
     };
