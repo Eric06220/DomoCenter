@@ -15,6 +15,7 @@ function createDashboardService({
   buildInfrastructureData,
   buildServicesStatus,
   buildTuyaHealth,
+  getBatteryAlertStates,
   findEntity,
   isEntityAvailable,
   readNumericEntity,
@@ -102,6 +103,70 @@ function createDashboardService({
       isEntityAvailable
     );
 
+        const batteryData =
+      buildBatteryData({
+        climateZones,
+        openings,
+        waterLeaks,
+        smoke,
+      });
+
+    const batteryAlertStates =
+      typeof getBatteryAlertStates ===
+      "function"
+        ? getBatteryAlertStates()
+        : {};
+
+    batteryData.batteries =
+      batteryData.batteries.map(
+        (battery) => {
+          const alertState =
+            batteryAlertStates[
+              battery.id
+            ];
+
+          const latchedCritical =
+            alertState
+              ?.latchedCritical === true;
+
+          return {
+            ...battery,
+            latchedCritical,
+
+            status:
+              latchedCritical
+                ? "critical"
+                : battery.status,
+          };
+        }
+      );
+
+    batteryData.ok =
+      batteryData.batteries.filter(
+        (battery) =>
+          battery.status === "ok"
+      ).length;
+
+    batteryData.low =
+      batteryData.batteries.filter(
+        (battery) =>
+          battery.status === "low"
+      ).length;
+
+    batteryData.critical =
+      batteryData.batteries.filter(
+        (battery) =>
+          battery.status ===
+          "critical"
+      ).length;
+
+    batteryData.unavailable =
+      batteryData.batteries.filter(
+        (battery) =>
+          battery.status ===
+          "unavailable"
+      ).length;
+
     return {
       system: {
         domoCenter: {
@@ -149,12 +214,7 @@ function createDashboardService({
         smoke,
       },
 
-      batteries: buildBatteryData({
-        climateZones,
-        openings,
-        waterLeaks,
-        smoke,
-      }),
+      batteries: batteryData,
 
       energy: buildEnergyData(
         entityConfiguration,

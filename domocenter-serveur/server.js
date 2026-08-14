@@ -123,6 +123,18 @@ const homeAssistantService =
       homeAssistantToken,
   });
 
+const alertService =
+  createAlertService({
+    homeAssistantService,
+
+    stateFilePath:
+      path.join(
+        __dirname,
+        "data",
+        "alert-state.json"
+      ),
+  });
+
 const dashboardService =
   createDashboardService({
     homeAssistantService,
@@ -141,6 +153,9 @@ const dashboardService =
     buildServicesStatus,
     buildTuyaHealth,
 
+    getBatteryAlertStates:
+      alertService.getBatteryAlertStates,
+
     findEntity,
     isEntityAvailable,
     readNumericEntity,
@@ -152,17 +167,7 @@ const dashboardService =
     homeAssistantUrl,
   });
 
-const alertService =
-  createAlertService({
-    homeAssistantService,
-
-    stateFilePath:
-      path.join(
-        __dirname,
-        "data",
-        "alert-state.json"
-      ),
-  });
+;
 
 const lightingRouter =
   createLightingRouter({

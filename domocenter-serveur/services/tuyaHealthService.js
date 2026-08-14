@@ -1,207 +1,123 @@
-const DEFAULT_THRESHOLDS_HOURS = {
-  entrance: 6,
-  poolPump: 14,
-  ecsHome: 30,
-};
+const TUYA_TECHNICAL_ENTITIES = [
+  "sensor.horloge_piscine_tension",
+  "sensor.horloge_piscine_puissance",
+  "sensor.horloge_piscine_courant",
+  "sensor.horloge_piscine_energie_totale",
 
-const TUYA_WITNESSES = [
-  {
-    id: "entrance",
-    name: "Entrée",
-    entityId:
-      "binary_sensor.porte_entree_porte",
-  },
-  {
-    id: "poolPump",
-    name: "Pompe piscine",
-    entityId:
-      "switch.horloge_piscine_interrupteur",
-  },
-  {
-    id: "ecsHome",
-    name: "ECS Maison",
-    entityId:
-      "switch.horloge_ecs_home_interrupteur",
-  },
+  "sensor.horloge_ecs_home_tension",
+  "sensor.horloge_ecs_home_courant",
+  "sensor.horloge_ecs_home_puissance",
+  "sensor.horloge_ecs_home_energie_totale",
+
+  "sensor.horloge_ecs_studio_tension",
+  "sensor.prises_piscine_tension",
+
+  "sensor.temp_humidity_home_temperature",
+  "sensor.temp_humidity_home_humidite",
+  "sensor.temp_humidity_studio_temperature",
+  "sensor.temp_humidity_studio_humidite",
+  "sensor.temp_humidity_ext_temperature",
+  "sensor.temp_humidity_ext_humidite",
+
+  "sensor.salon_climatiseur_de_piece_puissance",
 ];
 
-
-function getAgeHours(
-  dateString,
-  now = new Date()
-) {
-  if (!dateString) {
-    return null;
-  }
-
-  const date =
-    new Date(dateString);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return null;
-  }
-
-  return (
-    now.getTime() -
-    date.getTime()
-  ) / 3_600_000;
-}
+const WARNING_AFTER_MINUTES = 3;
+const CRITICAL_AFTER_MINUTES = 5;
 
 
-function findEntityById(
-  entities,
-  entityId
-) {
-  return entities.find(
-    (entity) =>
-      entity.entity_id ===
-      entityId
-  );
-}
-
-
-function evaluateWitness({
-  witness,
-  entities,
-  thresholdsHours,
-  now,
-}) {
-  const entity =
-    findEntityById(
-      entities,
-      witness.entityId
-    );
-
-  if (!entity) {
-    return {
-      ...witness,
-      available: false,
-      state: "unknown",
-      lastUpdated: null,
-      ageHours: null,
-      stale: true,
-      reason:
-        "Entité introuvable",
-    };
-  }
-
-  const lastUpdated =
-    entity.last_updated ??
-    entity.last_changed ??
+function getTimestampMs(entity) {
+  const value =
+    entity?.last_updated ??
+    entity?.last_changed ??
     null;
 
-  const ageHours =
-    getAgeHours(
-      lastUpdated,
-      now
-    );
+  if (!value) {
+    return null;
+  }
 
-  const thresholdHours =
-    thresholdsHours[
-      witness.id
-    ];
+  const timestamp =
+    new Date(value).getTime();
 
-  const stale =
-    ageHours === null ||
-    ageHours >
-      thresholdHours;
-
-  return {
-    ...witness,
-    available:
-      entity.state !==
-      "unavailable",
-
-    state:
-      entity.state,
-
-    lastUpdated,
-
-    ageHours,
-
-    thresholdHours,
-
-    stale,
-
-    reason:
-      stale
-        ? "Dernière mise à jour trop ancienne"
-        : null,
-  };
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : null;
 }
 
 
 function buildTuyaHealth({
   entities,
   now = new Date(),
-  thresholdsHours =
-    DEFAULT_THRESHOLDS_HOURS,
 }) {
-  const witnesses =
-    TUYA_WITNESSES.map(
-      (witness) =>
-        evaluateWitness({
-          witness,
-          entities,
-          thresholdsHours,
-          now,
-        })
+  const technicalEntities =
+    entities.filter((entity) =>
+      TUYA_TECHNICAL_ENTITIES.includes(
+        entity.entity_id
+      )
     );
 
-  const entrance =
-    witnesses.find(
-      (item) =>
-        item.id ===
-        "entrance"
-    );
+  const updates =
+    technicalEntities
+      .map((entity) => ({
+        entityId:
+          entity.entity_id,
+        state:
+          entity.state,
+        lastUpdated:
+          entity.last_updated ??
+          entity.last_changed ??
+          null,
+        timestamp:
+          getTimestampMs(entity),
+      }))
+      .filter(
+        (item) =>
+          Number.isFinite(
+            item.timestamp
+          )
+      )
+      .sort(
+        (a, b) =>
+          b.timestamp -
+          a.timestamp
+      );
 
-  const poolPump =
-    witnesses.find(
-      (item) =>
-        item.id ===
-        "poolPump"
-    );
+  const latest =
+    updates[0] ?? null;
 
-  const ecsHome =
-    witnesses.find(
-      (item) =>
-        item.id ===
-        "ecsHome"
-    );
+  const nowMs =
+    now.getTime();
 
-  const automaticWitnessesStale =
-    Boolean(
-      poolPump?.stale &&
-      ecsHome?.stale
-    );
-
-  const allWitnessesStale =
-    Boolean(
-      entrance?.stale &&
-      poolPump?.stale &&
-      ecsHome?.stale
-    );
+  const ageMinutes =
+    latest
+      ? Math.max(
+          0,
+          (nowMs -
+            latest.timestamp) /
+            60_000
+        )
+      : null;
 
   let status =
-    "ok";
+    "critical";
 
   let label =
-    "Tuya OK";
+    "Données Tuya probablement figées";
 
   if (
-    allWitnessesStale
+    ageMinutes !== null &&
+    ageMinutes <
+      WARNING_AFTER_MINUTES
   ) {
     status =
-      "critical";
+      "ok";
 
     label =
-      "Données Tuya probablement figées";
+      "Tuya OK";
   } else if (
-    automaticWitnessesStale
+    ageMinutes !== null &&
+    ageMinutes <
+      CRITICAL_AFTER_MINUTES
   ) {
     status =
       "warning";
@@ -223,7 +139,24 @@ function buildTuyaHealth({
     critical:
       status === "critical",
 
-    witnesses,
+    latestEntity:
+      latest?.entityId ?? null,
+
+    latestUpdate:
+      latest?.lastUpdated ?? null,
+
+    ageMinutes,
+
+    thresholds: {
+      warningAfterMinutes:
+        WARNING_AFTER_MINUTES,
+
+      criticalAfterMinutes:
+        CRITICAL_AFTER_MINUTES,
+    },
+
+    monitoredEntityCount:
+      technicalEntities.length,
 
     checkedAt:
       now.toISOString(),
@@ -232,7 +165,8 @@ function buildTuyaHealth({
 
 
 module.exports = {
-  DEFAULT_THRESHOLDS_HOURS,
-  TUYA_WITNESSES,
+  TUYA_TECHNICAL_ENTITIES,
+  WARNING_AFTER_MINUTES,
+  CRITICAL_AFTER_MINUTES,
   buildTuyaHealth,
 };

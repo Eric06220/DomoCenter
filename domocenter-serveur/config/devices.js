@@ -36,7 +36,7 @@ const devices = {
       humidityEntityId:
         "sensor.temp_humidity_lt_humidite",
       batteryEntityId:
-        "sensor.temp_humidity_lt_batterie",
+        "sensor.capteur_lt_batterie",
     },
   ],
 

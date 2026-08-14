@@ -152,16 +152,53 @@ function createAlertService({
    * -----------------------------------------
    */
 
-  function getBatterySeverity(level) {
+  function getBatterySeverity(
+    level,
+    previousState = null
+  ) {
     if (!Number.isFinite(level)) {
       return "unavailable";
     }
 
-    if (level <= 10) {
+    const wasLatched =
+      previousState?.latchedCritical === true;
+
+    /*
+     * Une batterie qui passe sous 5 %
+     * déclenche une alerte critique
+     * persistante.
+     */
+    if (level < 5) {
       return "critical";
     }
 
-    if (level <= 20) {
+    /*
+     * Une alerte critique déjà mémorisée
+     * reste active jusqu'à ce qu'une
+     * nouvelle valeur supérieure à 80 %
+     * confirme le remplacement de la pile.
+     */
+    if (
+      wasLatched &&
+      level <= 80
+    ) {
+      return "critical";
+    }
+
+    /*
+     * Entre 5 % et moins de 10 %,
+     * la batterie reste critique,
+     * mais sans verrouillage persistant.
+     */
+    if (level < 10) {
+      return "critical";
+    }
+
+    /*
+     * Entre 10 % et moins de 20 %,
+     * la batterie est faible.
+     */
+    if (level < 20) {
       return "low";
     }
 
@@ -265,15 +302,20 @@ function createAlertService({
         continue;
       }
 
+      const previousState =
+        batteryAlertStates[
+          battery.id
+        ] ?? null;
+
       const currentSeverity =
         getBatterySeverity(
-          battery.level
+          battery.level,
+          previousState
         );
 
       const previousSeverity =
-        getPreviousBatterySeverity(
-          battery.id
-        );
+        previousState?.severity ??
+        null;
 
       if (
         currentSeverity ===
@@ -313,6 +355,12 @@ function createAlertService({
         );
       }
 
+      const latchedCritical =
+        battery.level < 5
+          ? true
+          : previousState?.latchedCritical === true &&
+            battery.level <= 80;
+
       batteryAlertStates[
         battery.id
       ] = {
@@ -321,6 +369,8 @@ function createAlertService({
 
         level:
           battery.level,
+
+        latchedCritical,
 
         name:
           battery.name,
@@ -333,9 +383,7 @@ function createAlertService({
           notify
             ? new Date()
                 .toISOString()
-            : batteryAlertStates[
-                battery.id
-              ]?.lastNotifiedAt ||
+            : previousState?.lastNotifiedAt ||
               null,
       };
 
