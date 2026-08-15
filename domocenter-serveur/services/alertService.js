@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
+const CRITICAL_ALERT_REPEAT_MS =
+  5 * 60 * 1000;
+
 function createAlertService({
   homeAssistantService,
   stateFilePath,
@@ -470,9 +473,39 @@ function createAlertService({
           sensor.id
         );
 
+      const previousAlertState =
+        waterLeakAlertStates[
+          sensor.id
+        ] ?? null;  
+
+      const lastNotifiedAt =
+        previousAlertState
+          ?.lastNotifiedAt
+          ? new Date(
+              previousAlertState
+                .lastNotifiedAt
+            ).getTime()
+          : null;
+
+      const repeatDue =
+        currentState === "leak" &&
+        previousAlertState
+          ?.acknowledged !== true &&
+        (
+          !Number.isFinite(
+            lastNotifiedAt
+          ) ||
+          Date.now() -
+            lastNotifiedAt >=
+            CRITICAL_ALERT_REPEAT_MS
+        );
+
       const notify =
         currentState === "leak" &&
-        previousState !== "leak";
+        (
+          previousState !== "leak" ||
+          repeatDue
+        );
 
       if (notify) {
         const message =
@@ -483,6 +516,7 @@ function createAlertService({
         await homeAssistantService
           .sendNotification({
             message,
+            critical: true,
           });
 
         console.log(
@@ -501,6 +535,11 @@ function createAlertService({
 
         location:
           sensor.location,
+
+        acknowledged:
+          currentState === "leak"
+            ? previousAlertState?.acknowledged === true
+            : false,
 
         updatedAt:
           new Date()
@@ -610,14 +649,61 @@ function createAlertService({
           detector.id
         );
 
+      const previousAlertState =
+        smokeAlertStates[
+          detector.id
+        ] ?? null;
+
+            const previousAlertActive =
+        previousAlertState
+          ?.alertActive === true;
+
+      const newSmokeDetection =
+        currentState === "smoke" &&
+        previousState !== "smoke";
+
+      const alertActive =
+        newSmokeDetection ||
+        (
+          previousAlertActive &&
+          previousAlertState
+            ?.acknowledged !== true
+        ) ||
+        currentState === "smoke";
+
       /*
        * Notification uniquement
        * lors du passage à l'état
        * "smoke".
        */
+      const lastNotifiedAt =
+        previousAlertState
+          ?.lastNotifiedAt
+          ? new Date(
+              previousAlertState
+                .lastNotifiedAt
+            ).getTime()
+          : null;
+
+      const repeatDue =
+        currentState === "smoke" &&
+        previousAlertState
+          ?.acknowledged !== true &&
+        (
+          !Number.isFinite(
+            lastNotifiedAt
+          ) ||
+          Date.now() -
+            lastNotifiedAt >=
+            CRITICAL_ALERT_REPEAT_MS
+        );
+
       const notify =
         currentState === "smoke" &&
-        previousState !== "smoke";
+        (
+          previousState !== "smoke" ||
+          repeatDue
+        );
 
       if (notify) {
         const message =
@@ -628,6 +714,7 @@ function createAlertService({
         await homeAssistantService
           .sendNotification({
             message,
+            critical: true,
           });
 
         console.log(
@@ -640,17 +727,24 @@ function createAlertService({
        * réarme automatiquement
        * une future alerte.
        */
-      smokeAlertStates[
+            smokeAlertStates[
         detector.id
       ] = {
         state:
           currentState,
+
+        alertActive,
 
         name:
           detector.name,
 
         location:
           detector.location,
+
+        acknowledged:
+          alertActive
+            ? previousAlertState?.acknowledged === true
+            : false,
 
         updatedAt:
           new Date()
@@ -660,9 +754,8 @@ function createAlertService({
           notify
             ? new Date()
                 .toISOString()
-            : smokeAlertStates[
-                detector.id
-              ]?.lastNotifiedAt ||
+            : previousAlertState
+                ?.lastNotifiedAt ||
               null,
       };
 
@@ -679,6 +772,69 @@ function createAlertService({
     saveSmokeState();
 
     return results;
+  }
+
+    function acknowledgeWaterLeakAlert(
+    sensorId
+  ) {
+    const currentState =
+      waterLeakAlertStates[
+        sensorId
+      ];
+
+    if (
+      !currentState ||
+      currentState.state !== "leak"
+    ) {
+      return false;
+    }
+
+    waterLeakAlertStates[
+      sensorId
+    ] = {
+      ...currentState,
+      acknowledged: true,
+      acknowledgedAt:
+        new Date().toISOString(),
+    };
+
+    saveWaterLeakState();
+
+    return true;
+  }
+
+  function acknowledgeSmokeAlert(
+    detectorId
+  ) {
+    const currentState =
+      smokeAlertStates[
+        detectorId
+      ];
+
+    if (
+      !currentState ||
+        currentState.alertActive !== true
+    ) {
+      return false;
+    }
+
+    smokeAlertStates[
+      detectorId
+    ] = {
+      ...currentState,
+
+      acknowledged: true,
+
+      acknowledgedAt:
+        new Date().toISOString(),
+
+      alertActive:
+        currentState.state === "smoke",
+    };
+
+    saveSmokeState();
+
+    return true;
   }
 
   /*
@@ -747,6 +903,9 @@ function createAlertService({
     processBatteryAlerts,
     processWaterLeakAlerts,
     processSmokeAlerts,
+
+    acknowledgeWaterLeakAlert,
+    acknowledgeSmokeAlert,
 
     resetBatteryAlertState,
     resetWaterLeakAlertState,

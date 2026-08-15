@@ -128,7 +128,11 @@ function SecurityPage() {
     smoke?.detectors ?? [];
 
   const smokeAlerts =
-    smoke?.smokeAlert ?? 0;
+    smokeSensors.filter(
+      (detector) =>
+        detector.smokeDetected === true ||
+        detector.alertActive === true
+    ).length;
 
   const hasAlert =
     openSensors > 0 ||

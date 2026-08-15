@@ -16,6 +16,8 @@ function createDashboardService({
   buildServicesStatus,
   buildTuyaHealth,
   getBatteryAlertStates,
+  getWaterLeakAlertStates,
+  getSmokeAlertStates,
   findEntity,
   isEntityAvailable,
   readNumericEntity,
@@ -89,12 +91,41 @@ function createDashboardService({
       isEntityAvailable
     );
 
-    const waterLeaks = buildWaterLeakData(
+        const waterLeaks = buildWaterLeakData(
       entityConfiguration,
       entities,
       findEntity,
       isEntityAvailable
     );
+
+    const waterLeakAlertStates =
+      typeof getWaterLeakAlertStates ===
+      "function"
+        ? getWaterLeakAlertStates()
+        : {};
+
+    waterLeaks.sensors =
+      waterLeaks.sensors.map(
+        (sensor) => {
+          const alertState =
+            waterLeakAlertStates[
+              sensor.id
+            ];
+
+          return {
+            ...sensor,
+
+            acknowledged:
+              alertState?.acknowledged ===
+              true,
+
+            acknowledgedAt:
+              alertState
+                ?.acknowledgedAt ??
+              null,
+          };
+        }
+      );
 
     const smoke = buildSmokeData(
       entityConfiguration,
@@ -102,6 +133,38 @@ function createDashboardService({
       findEntity,
       isEntityAvailable
     );
+
+    const smokeAlertStates =
+      typeof getSmokeAlertStates ===
+      "function"
+        ? getSmokeAlertStates()
+        : {};
+
+    smoke.detectors =
+      smoke.detectors.map(
+        (detector) => {
+          const alertState =
+            smokeAlertStates[
+              detector.id
+            ];
+
+          return {
+            ...detector,
+
+            acknowledged:
+              alertState?.acknowledged ===
+              true,
+
+            acknowledgedAt:
+              alertState
+                ?.acknowledgedAt ??
+              null,
+            
+            alertActive:
+              alertState?.alertActive === true,
+          };
+        }
+      );
 
         const batteryData =
       buildBatteryData({

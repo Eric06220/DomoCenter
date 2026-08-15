@@ -1,6 +1,7 @@
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -11,6 +12,10 @@ import {
 
 import SystemStatusCard from "../components/dashboard/SystemStatusCard";
 import useHomeAssistant from "../hooks/useHomeAssistant";
+import {
+  acknowledgeSmokeAlert,
+  acknowledgeWaterLeakAlert,
+} from "../services/homeAssistantApi";
 
 function SupervisionPage() {
   const {
@@ -25,6 +30,36 @@ function SupervisionPage() {
       await refreshDashboard();
     } catch {
       // Le hook gère déjà le message d’erreur.
+    }
+  }
+
+    async function handleAcknowledgeWaterLeak(
+    sensorId
+  ) {
+    try {
+      await acknowledgeWaterLeakAlert(
+        sensorId
+      );
+
+      await refreshDashboard();
+    } catch {
+      // Le prochain état du Dashboard
+      // permettra de conserver l'alerte
+      // si l'acquittement échoue.
+    }
+  }
+
+  async function handleAcknowledgeSmoke(
+    detectorId
+  ) {
+    try {
+      await acknowledgeSmokeAlert(
+        detectorId
+      );
+
+      await refreshDashboard();
+    } catch {
+      // Même principe pour la fumée.
     }
   }
 
@@ -65,7 +100,8 @@ function SupervisionPage() {
   const activeSmokeAlerts =
     smokeDetectors.filter(
       (detector) =>
-        detector.smokeDetected === true
+        detector.smokeDetected === true ||
+        detector.alertActive === true
     );
 
   const totalActiveAlerts =
@@ -209,7 +245,32 @@ function SupervisionPage() {
                 (sensor) => (
                   <Alert
                     key={sensor.id}
-                    severity="error"
+                    severity={
+                      sensor.acknowledged
+                        ? "warning"
+                        : "error"
+                    }
+                    action={
+                      sensor.acknowledged ? (
+                        <Chip
+                          label="Acquittée"
+                          size="small"
+                          color="warning"
+                        />
+                      ) : (
+                        <Button
+                          color="inherit"
+                          size="small"
+                          onClick={() =>
+                            handleAcknowledgeWaterLeak(
+                              sensor.id
+                            )
+                          }
+                        >
+                          Acquitter
+                        </Button>
+                      )
+                    }
                   >
                     <Typography fontWeight={800}>
                       💧 Fuite d’eau — {sensor.name}
@@ -218,6 +279,9 @@ function SupervisionPage() {
                     <Typography variant="body2">
                       {sensor.location ||
                         "Emplacement inconnu"}
+                      {sensor.acknowledged
+                        ? " — alerte acquittée"
+                        : " — intervention requise"}
                     </Typography>
                   </Alert>
                 )
@@ -227,7 +291,32 @@ function SupervisionPage() {
                 (detector) => (
                   <Alert
                     key={detector.id}
-                    severity="error"
+                    severity={
+                      detector.acknowledged
+                        ? "warning"
+                        : "error"
+                    }
+                    action={
+                      detector.acknowledged ? (
+                        <Chip
+                          label="Acquittée"
+                          size="small"
+                          color="warning"
+                        />
+                      ) : (
+                        <Button
+                          color="inherit"
+                          size="small"
+                          onClick={() =>
+                            handleAcknowledgeSmoke(
+                              detector.id
+                            )
+                          }
+                        >
+                          Acquitter
+                        </Button>
+                      )
+                    }
                   >
                     <Typography fontWeight={800}>
                       🔥 Fumée détectée — {detector.name}
@@ -236,10 +325,14 @@ function SupervisionPage() {
                     <Typography variant="body2">
                       {detector.location ||
                         "Emplacement inconnu"}
+                      {detector.acknowledged
+                        ? " — alerte acquittée"
+                        : " — intervention requise"}
                     </Typography>
                   </Alert>
                 )
               )}
+
             </Stack>
           </CardContent>
         </Card>

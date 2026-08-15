@@ -231,3 +231,32 @@ export async function triggerShutter(
     }
   );
 }
+export async function acknowledgeWaterLeakAlert(
+  sensorId
+) {
+  return fetchJson(
+    `/api/alerts/water-leak/${sensorId}/acknowledge`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+    }
+  );
+}
+
+export async function acknowledgeSmokeAlert(
+  detectorId
+) {
+  return fetchJson(
+    `/api/alerts/smoke/${detectorId}/acknowledge`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+    }
+  );
+}

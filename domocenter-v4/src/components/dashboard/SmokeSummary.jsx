@@ -15,8 +15,15 @@ function SmokeSummary({
   smoke,
   loading = false,
 }) {
+  const smokeDetectors =
+  smoke?.detectors ?? [];
+
   const smokeAlertCount =
-    smoke?.smokeAlert ?? 0;
+    smokeDetectors.filter(
+      (detector) =>
+        detector.smokeDetected === true ||
+        detector.alertActive === true
+    ).length;
 
   const tamperAlertCount =
     smoke?.tamperAlert ?? 0;

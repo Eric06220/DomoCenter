@@ -100,8 +100,11 @@ const homeAssistantToken =
 const CACHE_DURATION_MS =
   10_000;
 
-const ALERT_CHECK_INTERVAL_MS =
+const BATTERY_CHECK_INTERVAL_MS =
   60_000;
+
+const SAFETY_CHECK_INTERVAL_MS =
+  2_000;
 
 if (
   !homeAssistantUrl ||
@@ -156,6 +159,12 @@ const dashboardService =
     getBatteryAlertStates:
       alertService.getBatteryAlertStates,
 
+    getWaterLeakAlertStates:
+      alertService.getWaterLeakAlertStates,
+
+    getSmokeAlertStates:
+      alertService.getSmokeAlertStates,
+
     findEntity,
     isEntityAvailable,
     readNumericEntity,
@@ -199,6 +208,109 @@ const energyControlService =
       dashboardService
         .clearCache,
   });
+
+homeAssistantService.subscribeStateChanges(
+  async (eventData) => {
+    const entityId =
+      eventData?.entity_id;
+
+    const newState =
+      eventData?.new_state;
+
+    if (
+      !entityId ||
+      !newState
+    ) {
+      return;
+    }
+
+    const waterLeakSensor =
+      (
+        entityConfiguration
+          .waterLeakSensors ?? []
+      ).find(
+        (sensor) =>
+          sensor.entityId ===
+          entityId
+      );
+
+    if (waterLeakSensor) {
+      const available =
+        newState.state !==
+          "unavailable" &&
+        newState.state !==
+          "unknown";
+
+      await alertService
+        .processWaterLeakAlerts([
+          {
+            id:
+              waterLeakSensor.id,
+
+            name:
+              waterLeakSensor.name,
+
+            location:
+              waterLeakSensor.location,
+
+            available,
+
+            leakDetected:
+              available
+                ? newState.state ===
+                  "on"
+                : null,
+          },
+        ]);
+
+      dashboardService
+        .clearCache();
+
+      return;
+    }
+
+    const smokeDetector =
+      (
+        entityConfiguration
+          .smokeDetectors ?? []
+      ).find(
+        (detector) =>
+          detector.smokeEntityId ===
+          entityId
+      );
+
+    if (smokeDetector) {
+      const available =
+        newState.state !==
+          "unavailable" &&
+        newState.state !==
+          "unknown";
+
+      await alertService
+        .processSmokeAlerts([
+          {
+            id:
+              smokeDetector.id,
+
+            name:
+              smokeDetector.name,
+
+            location:
+              smokeDetector.location,
+
+            smokeDetected:
+              available
+                ? newState.state ===
+                  "on"
+                : null,
+          },
+        ]);
+
+      dashboardService
+        .clearCache();
+    }
+  }
+);
 
 app.use(
   cors({
@@ -261,6 +373,9 @@ function getErrorStatus(
 let batteryAlertCheckRunning =
   false;
 
+let safetyAlertCheckRunning =
+  false;
+
 async function checkBatteryAlerts() {
   if (
     batteryAlertCheckRunning
@@ -283,31 +398,6 @@ async function checkBatteryAlerts() {
         ?.batteries
         ?.batteries ??
       [];
-    const waterLeakSensors =
-      dashboard
-        ?.security
-        ?.waterLeaks
-        ?.sensors ??
-      [];
-
-    const waterLeakResults =
-      await alertService
-        .processWaterLeakAlerts(
-          waterLeakSensors
-        );   
-    
-    const smokeDetectors =
-      dashboard
-      ?.security
-      ?.smoke
-      ?.detectors ??
-      [];
-
-    const smokeResults =
-      await alertService
-        .processSmokeAlerts(
-          smokeDetectors
-        );    
 
     const results =
       await alertService
@@ -320,18 +410,6 @@ async function checkBatteryAlerts() {
         (result) =>
           result.notified
       );
-    const waterLeakNotifications =
-      waterLeakResults.filter(
-        (result) =>
-          result.notified
-      ); 
-
-    const smokeNotifications =
-      smokeResults.filter(
-        (result) =>
-          result.notified
-      );  
-
 
     if (
       notifications.length >
@@ -341,6 +419,73 @@ async function checkBatteryAlerts() {
         `${notifications.length} notification(s) batterie DomoCenter envoyée(s).`
       );
     }
+  } catch (error) {
+    console.error(
+      "Erreur surveillance batteries DomoCenter :",
+      getErrorDetails(
+        error
+      )
+    );
+  } finally {
+    batteryAlertCheckRunning =
+      false;
+  }
+}
+
+async function checkSafetyAlerts() {
+  if (
+    safetyAlertCheckRunning
+  ) {
+    return;
+  }
+
+  safetyAlertCheckRunning =
+    true;
+
+  try {
+    const dashboard =
+      await dashboardService
+        .getDashboardData(
+          true
+        );
+
+    const waterLeakSensors =
+      dashboard
+        ?.security
+        ?.waterLeaks
+        ?.sensors ??
+      [];
+
+    const smokeDetectors =
+      dashboard
+        ?.security
+        ?.smoke
+        ?.detectors ??
+      [];
+
+    const waterLeakResults =
+      await alertService
+        .processWaterLeakAlerts(
+          waterLeakSensors
+        );
+
+    const smokeResults =
+      await alertService
+        .processSmokeAlerts(
+          smokeDetectors
+        );
+
+    const waterLeakNotifications =
+      waterLeakResults.filter(
+        (result) =>
+          result.notified
+      );
+
+    const smokeNotifications =
+      smokeResults.filter(
+        (result) =>
+          result.notified
+      );
 
     if (
       waterLeakNotifications.length >
@@ -361,13 +506,13 @@ async function checkBatteryAlerts() {
     }
   } catch (error) {
     console.error(
-      "Erreur surveillance batteries DomoCenter :",
+      "Erreur surveillance sécurité DomoCenter :",
       getErrorDetails(
         error
       )
     );
   } finally {
-    batteryAlertCheckRunning =
+    safetyAlertCheckRunning =
       false;
   }
 }
@@ -636,6 +781,74 @@ app.post(
   }
 );
 
+app.post(
+  "/api/alerts/water-leak/:sensorId/acknowledge",
+  (
+    request,
+    response
+  ) => {
+    const {
+      sensorId,
+    } = request.params;
+
+    const acknowledged =
+      alertService
+        .acknowledgeWaterLeakAlert(
+          sensorId
+        );
+
+    if (!acknowledged) {
+      return response
+        .status(409)
+        .json({
+          success: false,
+          error:
+            "Aucune alerte fuite active à acquitter.",
+        });
+    }
+
+    return response.json({
+      success: true,
+      sensorId,
+      acknowledged: true,
+    });
+  }
+);
+
+app.post(
+  "/api/alerts/smoke/:detectorId/acknowledge",
+  (
+    request,
+    response
+  ) => {
+    const {
+      detectorId,
+    } = request.params;
+
+    const acknowledged =
+      alertService
+        .acknowledgeSmokeAlert(
+          detectorId
+        );
+
+    if (!acknowledged) {
+      return response
+        .status(409)
+        .json({
+          success: false,
+          error:
+            "Aucune alerte fumée active à acquitter.",
+        });
+    }
+
+    return response.json({
+      success: true,
+      detectorId,
+      acknowledged: true,
+    });
+  }
+);
+
 app.use(
   (
     request,
@@ -747,7 +960,12 @@ app.listen(
      */
     setInterval(
       checkBatteryAlerts,
-      ALERT_CHECK_INTERVAL_MS
+      BATTERY_CHECK_INTERVAL_MS
+    );
+
+    setInterval(
+      checkSafetyAlerts,
+      SAFETY_CHECK_INTERVAL_MS
     );
   }
 );

@@ -1,4 +1,5 @@
 const axios = require("axios");
+const WebSocket = require("ws");
 
 function createHomeAssistantService({
   baseUrl,
@@ -120,9 +121,10 @@ function createHomeAssistantService({
 }
 
 
-  async function sendNotification({
+    async function sendNotification({
     message,
     entityId = "notify.iphone",
+    critical = false,
   }) {
     if (!message) {
       throw new Error(
@@ -136,14 +138,46 @@ function createHomeAssistantService({
       );
     }
 
+    const payload = {
+      entity_id: entityId,
+      message,
+    };
+
+    if (critical) {
+      payload.data = {
+        push: {
+          sound: {
+            name: "default",
+            critical: 1,
+            volume: 1.0,
+          },
+        },
+      };
+    }
+
     try {
-      await api.post(
-        "/services/notify/send_message",
-        {
-          entity_id: entityId,
-          message,
-        }
-      );
+      if (critical) {
+        await api.post(
+          "/services/notify/notify",
+          {
+            message,
+            data: {
+              push: {
+                sound: {
+                  name: "default",
+                  critical: 1,
+                  volume: 1,
+                },
+              },
+            },
+          }
+        );
+      } else {
+        await api.post(
+          "/services/notify/send_message",
+          payload
+        );
+      }
 
       console.log(
         `Notification DomoCenter envoyée vers ${entityId}`
@@ -156,11 +190,164 @@ function createHomeAssistantService({
           data: error.response?.data,
           entityId,
           message,
+          critical,
         }
       );
 
       throw error;
     }
+  }
+
+    function subscribeStateChanges(
+    onStateChanged
+  ) {
+    if (
+      typeof onStateChanged !==
+      "function"
+    ) {
+      throw new Error(
+        "Callback state_changed manquant."
+      );
+    }
+
+    const websocketUrl =
+      baseUrl.replace(
+        /^http/,
+        "ws"
+      ) + "/api/websocket";
+
+    let socket = null;
+    let subscriptionId = 1;
+    let reconnectTimer = null;
+    let stopped = false;
+
+    function connect() {
+      if (stopped) {
+        return;
+      }
+
+      socket =
+        new WebSocket(
+          websocketUrl
+        );
+
+      socket.on(
+        "message",
+        (rawMessage) => {
+          let message;
+
+          try {
+            message =
+              JSON.parse(
+                rawMessage.toString()
+              );
+          } catch {
+            return;
+          }
+
+          if (
+            message.type ===
+            "auth_required"
+          ) {
+            socket.send(
+              JSON.stringify({
+                type: "auth",
+                access_token:
+                  token,
+              })
+            );
+
+            return;
+          }
+
+          if (
+            message.type ===
+            "auth_ok"
+          ) {
+            socket.send(
+              JSON.stringify({
+                id:
+                  subscriptionId,
+                type:
+                  "subscribe_events",
+                event_type:
+                  "state_changed",
+              })
+            );
+
+            console.log(
+              "DomoCenter WebSocket Home Assistant connecté."
+            );
+
+            return;
+          }
+
+          if (
+            message.type ===
+              "event" &&
+            message.event
+              ?.event_type ===
+              "state_changed"
+          ) {
+            try {
+              onStateChanged(
+                message.event.data
+              );
+            } catch (error) {
+              console.error(
+                "Erreur traitement événement Home Assistant :",
+                error.message
+              );
+            }
+          }
+        }
+      );
+
+      socket.on(
+        "close",
+        () => {
+          if (stopped) {
+            return;
+          }
+
+          console.warn(
+            "WebSocket Home Assistant déconnecté. Reconnexion dans 5 secondes."
+          );
+
+          reconnectTimer =
+            setTimeout(
+              connect,
+              5000
+            );
+        }
+      );
+
+      socket.on(
+        "error",
+        (error) => {
+          console.error(
+            "Erreur WebSocket Home Assistant :",
+            error.message
+          );
+        }
+      );
+    }
+
+    connect();
+
+    return function unsubscribe() {
+      stopped = true;
+
+      if (reconnectTimer) {
+        clearTimeout(
+          reconnectTimer
+        );
+      }
+
+      if (socket) {
+        socket.close();
+      }
+    };
   }
 
   return {
@@ -169,6 +356,7 @@ function createHomeAssistantService({
     setSwitchState,
     callClimateService,
     sendNotification,
+    subscribeStateChanges,
   };
 }
 
