@@ -65,6 +65,8 @@ function calculateGlobalStatus({
   homeAssistantConnected,
   domoCenterConnected,
   tuyaConnected,
+  tuyaWarning,
+  tuyaCritical,
   internetConnected,
   cpuTemperature,
   cpuUsage,
@@ -84,6 +86,16 @@ function calculateGlobalStatus({
 
   if (!tuyaConnected) {
     criticalReasons.push("Tuya inaccessible");
+  }
+
+  if (tuyaCritical) {
+    criticalReasons.push(
+      "données Tuya probablement figées"
+    );
+  } else if (tuyaWarning) {
+    warningReasons.push(
+      "données Tuya à vérifier"
+    );
   }
 
   if (!internetConnected) {
@@ -213,7 +225,12 @@ function ServiceItem({
   online,
   description,
   icon,
+  statusColor,
 }) {
+  const effectiveColor =
+    statusColor ??
+    (online ? "success" : "error");
+
   return (
     <Stack
       direction="row"
@@ -227,9 +244,7 @@ function ServiceItem({
           display: "grid",
           placeItems: "center",
           borderRadius: 3,
-          bgcolor: online
-            ? "success.main"
-            : "error.main",
+          bgcolor: `${effectiveColor}.main`,
           color: "white",
           flexShrink: 0,
         }}
@@ -244,11 +259,7 @@ function ServiceItem({
 
         <Typography
           variant="body2"
-          color={
-            online
-              ? "success.main"
-              : "error.main"
-          }
+          color={`${effectiveColor}.main`}
         >
           {description}
         </Typography>
@@ -269,6 +280,20 @@ function SystemStatusCard({
   const homeAssistant = system?.homeAssistant;
   const tuya = system?.tuya;
   const cache = system?.cache;
+
+  const tuyaHealth =
+    tuya?.health ?? null;
+
+  const tuyaWarning =
+    tuyaHealth?.warning === true;
+
+  const tuyaCritical =
+    tuyaHealth?.critical === true;
+
+  const tuyaHealthLabel =
+    tuyaHealth?.label ??
+    services?.tuya?.healthLabel ??
+    "Tuya";
 
   const homeAssistantConnected = Boolean(
     services?.homeAssistant?.online ??
@@ -338,6 +363,8 @@ function SystemStatusCard({
     homeAssistantConnected,
     domoCenterConnected,
     tuyaConnected,
+    tuyaWarning,
+    tuyaCritical,
     internetConnected,
     cpuTemperature,
     cpuUsage,
@@ -468,7 +495,7 @@ function SystemStatusCard({
               Services
             </Typography>
 
-            <Grid container spacing={2.5}>
+                        <Grid container spacing={2.5}>
               <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
                 <ServiceItem
                   label="Home Assistant"
@@ -499,14 +526,27 @@ function SystemStatusCard({
                 <ServiceItem
                   label="Tuya"
                   online={tuyaConnected}
-                  description={
-                    tuyaConnected
-                      ? `Synchronisé ${formatRelativeTime(
-                          tuyaLastUpdate
-                        )}`
-                      : "Inaccessible"
+                  statusColor={
+                    !tuyaConnected
+                      ? "error"
+                      : tuyaCritical
+                      ? "error"
+                      : tuyaWarning
+                      ? "warning"
+                      : "success"
                   }
-                  icon={<CheckCircleRoundedIcon />}
+                  description={
+                    !tuyaConnected
+                      ? "Inaccessible"
+                      : tuyaHealthLabel
+                  }
+                  icon={
+                    tuyaCritical || tuyaWarning ? (
+                      <WarningAmberRoundedIcon />
+                    ) : (
+                      <CheckCircleRoundedIcon />
+                    )
+                  }
                 />
               </Grid>
 
