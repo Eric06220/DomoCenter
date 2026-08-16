@@ -1,4 +1,9 @@
 import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
   Alert,
   Box,
   Chip,
@@ -14,12 +19,19 @@ import CameraSummary from "../components/dashboard/CameraSummary";
 import ClimateControlSummary from "../components/dashboard/ClimateControlSummary";
 import ClimateSection from "../components/dashboard/ClimateSection";
 import EnergySummary from "../components/dashboard/EnergySummary";
+import HouseModeSummary from "../components/dashboard/HouseModeSummary";
 import LightingSummary from "../components/dashboard/LightingSummary";
 import OpeningSection from "../components/dashboard/OpeningSection";
 import SmokeSummary from "../components/dashboard/SmokeSummary";
 import SystemSummary from "../components/dashboard/SystemSummary";
 import WaterLeakSummary from "../components/dashboard/WaterLeakSummary";
+
 import useHomeAssistant from "../hooks/useHomeAssistant";
+
+import {
+  getHouseMode,
+  setHouseMode,
+} from "../services/homeAssistantApi";
 
 function DashboardPage() {
   const {
@@ -27,6 +39,100 @@ function DashboardPage() {
     loading,
     error,
   } = useHomeAssistant(10000);
+
+  const [
+    houseMode,
+    setHouseModeState,
+  ] = useState("present");
+
+  const [
+    houseModeLoading,
+    setHouseModeLoading,
+  ] = useState(true);
+
+  const [
+    houseModeChanging,
+    setHouseModeChanging,
+  ] = useState(false);
+
+  const [
+    houseModeError,
+    setHouseModeError,
+  ] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadHouseMode() {
+      try {
+        setHouseModeError("");
+
+        const result =
+          await getHouseMode();
+
+        if (!active) {
+          return;
+        }
+
+        setHouseModeState(
+          result?.current?.mode ??
+            "present"
+        );
+      } catch (caughtError) {
+        if (!active) {
+          return;
+        }
+
+        setHouseModeError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Impossible de récupérer le mode maison."
+        );
+      } finally {
+        if (active) {
+          setHouseModeLoading(false);
+        }
+      }
+    }
+
+    loadHouseMode();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleHouseModeChange(
+    mode
+  ) {
+    if (
+      houseModeChanging ||
+      mode === houseMode
+    ) {
+      return;
+    }
+
+    try {
+      setHouseModeChanging(true);
+      setHouseModeError("");
+
+      const result =
+        await setHouseMode(mode);
+
+      setHouseModeState(
+        result?.current?.mode ??
+          mode
+      );
+    } catch (caughtError) {
+      setHouseModeError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Impossible de modifier le mode maison."
+      );
+    } finally {
+      setHouseModeChanging(false);
+    }
+  }
 
   const climateZones =
     dashboard?.climate?.zones ?? [];
@@ -134,6 +240,18 @@ function DashboardPage() {
             {error}
           </Alert>
         )}
+
+        {/* MODE MAISON */}
+
+        <HouseModeSummary
+          mode={houseMode}
+          loading={houseModeLoading}
+          changing={houseModeChanging}
+          error={houseModeError}
+          onChange={
+            handleHouseModeChange
+          }
+        />
 
         {/* CLIMAT - PLEINE LARGEUR */}
 

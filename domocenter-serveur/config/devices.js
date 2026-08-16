@@ -373,6 +373,8 @@ const devices = {
       model: "ANRAN P3 Max",
       ipAddress: "192.168.1.199",
       entityId: "camera.portail_profile_000",
+      availabilityEntityId:
+        "binary_sensor.192_168_1_199",
     },
     {
       id: "jardin",
@@ -381,6 +383,8 @@ const devices = {
       model: "ANRAN P3 Max",
       ipAddress: "192.168.1.25",
       entityId: "camera.jardin_profile_000",
+      availabilityEntityId:
+        "binary_sensor.192_168_1_25",
     },
     {
       id: "entree",
@@ -389,6 +393,8 @@ const devices = {
       model: "ANRAN S02",
       ipAddress: "192.168.1.42",
       entityId: null,
+      availabilityEntityId:
+        "binary_sensor.192_168_1_42",
     },
     {
       id: "allee",
@@ -397,6 +403,8 @@ const devices = {
       model: "ANRAN S02",
       ipAddress: "192.168.1.126",
       entityId: null,
+      availabilityEntityId:
+        "binary_sensor.192_168_1_126",
     },
     {
       id: "studio",
@@ -405,6 +413,8 @@ const devices = {
       model: "ANRAN S02",
       ipAddress: "192.168.1.166",
       entityId: null,
+      availabilityEntityId:
+        "binary_sensor.192_168_1_166",
     },
     {
       id: "salon",
@@ -413,6 +423,8 @@ const devices = {
       model: "iCam365",
       ipAddress: "192.168.1.61",
       entityId: null,
+      availabilityEntityId:
+        "binary_sensor.192_168_1_61",
     },
     {
       id: "atelier",
@@ -421,6 +433,8 @@ const devices = {
       model: "HI3516EV100",
       ipAddress: "192.168.1.41",
       entityId: "camera.atelier_profile_000",
+      availabilityEntityId:
+        "binary_sensor.192_168_1_41",
     },
   ],
 

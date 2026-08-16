@@ -6,32 +6,33 @@ function buildCameraData({
   isEntityAvailable,
 }) {
   const cameras = cameraDevices.map((camera) => {
-    const integrated =
-      typeof camera.entityId === "string" &&
-      camera.entityId.length > 0;
+    const availabilityEntity =
+      typeof camera.availabilityEntityId === "string" &&
+      camera.availabilityEntityId.length > 0
+        ? findEntity(
+            entities,
+            camera.availabilityEntityId
+          )
+        : null;
 
-    if (!integrated) {
-      return {
-        id: camera.id,
-        name: camera.name,
-        location: camera.location,
-        model: camera.model,
-        ipAddress: camera.ipAddress,
-        entityId: null,
-        integrated: false,
-        available: null,
-        state: "not_integrated",
-        lastUpdated: null,
-      };
-    }
-
-    const entity = findEntity(
-      entities,
-      camera.entityId
-    );
+    const availabilityEntityAvailable =
+      isEntityAvailable(
+        availabilityEntity
+      );
 
     const available =
-      isEntityAvailable(entity);
+      availabilityEntityAvailable
+        ? availabilityEntity.state === "on"
+        : false;
+
+    const cameraEntity =
+      typeof camera.entityId === "string" &&
+      camera.entityId.length > 0
+        ? findEntity(
+            entities,
+            camera.entityId
+          )
+        : null;
 
     return {
       id: camera.id,
@@ -39,29 +40,45 @@ function buildCameraData({
       location: camera.location,
       model: camera.model,
       ipAddress: camera.ipAddress,
-      entityId: camera.entityId,
-      integrated: true,
+
+      entityId:
+        camera.entityId ?? null,
+
+      availabilityEntityId:
+        camera.availabilityEntityId ??
+        null,
+
+      integrated:
+        typeof camera.entityId === "string" &&
+        camera.entityId.length > 0,
+
       available,
+
       state: available
-        ? entity.state
-        : "unavailable",
+        ? "online"
+        : "offline",
+
+      cameraState:
+        cameraEntity &&
+        isEntityAvailable(cameraEntity)
+          ? cameraEntity.state
+          : null,
+
       lastUpdated:
-        entity?.last_updated ?? null,
+        availabilityEntity
+          ?.last_updated ??
+        null,
     };
   });
 
-  const integratedCameras = cameras.filter(
-    (camera) => camera.integrated
-  );
-
   const availableCameras =
-    integratedCameras.filter(
+    cameras.filter(
       (camera) =>
         camera.available === true
     );
 
   const unavailableCameras =
-    integratedCameras.filter(
+    cameras.filter(
       (camera) =>
         camera.available === false
     );
@@ -117,18 +134,11 @@ function buildCameraData({
     totalConfigured:
       cameras.length,
 
-    integrated:
-      integratedCameras.length,
-
     available:
       availableCameras.length,
 
     unavailable:
       unavailableCameras.length,
-
-    notIntegrated:
-      cameras.length -
-      integratedCameras.length,
 
     cameras,
 

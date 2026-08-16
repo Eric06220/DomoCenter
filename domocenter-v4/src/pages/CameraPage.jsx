@@ -11,7 +11,6 @@ import {
 } from "@mui/material";
 
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
 import BatteryChargingFullRoundedIcon from "@mui/icons-material/BatteryChargingFullRounded";
@@ -88,6 +87,19 @@ function CameraPage() {
   const recharge =
     camerasData?.recharge ?? null;
 
+  const available =
+    camerasData?.available ?? 0;
+
+  const unavailable =
+    camerasData?.unavailable ?? 0;
+
+  const total =
+    camerasData?.totalConfigured ??
+    cameras.length;
+
+  const hasOfflineCamera =
+    unavailable > 0;
+
   const iosDevice =
     isIOSDevice();
 
@@ -151,11 +163,20 @@ function CameraPage() {
             icon={
               <VideocamRoundedIcon />
             }
-            label={`${cameras.length} caméra${
-              cameras.length > 1
-                ? "s"
-                : ""
-            }`}
+            label={
+              loading
+                ? `${total} caméra${
+                    total > 1
+                      ? "s"
+                      : ""
+                  }`
+                : `${available} / ${total} en ligne`
+            }
+            color={
+              hasOfflineCamera
+                ? "error"
+                : "success"
+            }
             variant="outlined"
             sx={{
               minWidth: {
@@ -171,6 +192,15 @@ function CameraPage() {
         {error && (
           <Alert severity="error">
             Impossible de récupérer les données caméras : {error}
+          </Alert>
+        )}
+
+
+        {hasOfflineCamera && !loading && (
+          <Alert severity="error">
+            {unavailable} caméra
+            {unavailable > 1 ? "s" : ""}{" "}
+            hors ligne.
           </Alert>
         )}
 
@@ -324,6 +354,9 @@ function CameraPage() {
                 camera
               );
 
+            const cameraOffline =
+              camera.available === false;
+
             return (
               <Grid
                 key={camera.id}
@@ -336,6 +369,14 @@ function CameraPage() {
                   variant="outlined"
                   sx={{
                     height: "100%",
+                    borderColor:
+                      cameraOffline
+                        ? "error.main"
+                        : "divider",
+                    borderWidth:
+                      cameraOffline
+                        ? 2
+                        : 1,
                   }}
                 >
                   <CardContent
@@ -416,7 +457,9 @@ function CameraPage() {
                               sm: 25,
                             },
                             color:
-                              "text.secondary",
+                              cameraOffline
+                                ? "error.main"
+                                : "text.secondary",
                           }}
                         />
                       </Box>
@@ -435,6 +478,10 @@ function CameraPage() {
                             sm: "none",
                           },
                           lineHeight: 1.15,
+                          color:
+                            cameraOffline
+                              ? "error.main"
+                              : "text.primary",
                         }}
                       >
                         {camera.name}
@@ -478,6 +525,10 @@ function CameraPage() {
                           noWrap
                           sx={{
                             lineHeight: 1.15,
+                            color:
+                              cameraOffline
+                                ? "error.main"
+                                : "text.primary",
                           }}
                         >
                           {camera.name}
@@ -497,27 +548,43 @@ function CameraPage() {
                       </Box>
 
 
-                      {/* APPLICATION */}
+                      {/* APPLICATION + ÉTAT */}
 
                       <Box
                         gridArea="app"
                         sx={{
                           display: "flex",
                           justifyContent: "center",
-                          alignItems: "flex-end",
-                          alignSelf: "end",
+                          alignItems: "center",
                         }}
                       >
-                        <Chip
-                          label={
-                            application.name
-                          }
-                          size="small"
-                          sx={{
-                            fontWeight: 700,
-                            height: 26,
-                          }}
-                        />
+                        <Stack
+                          spacing={0.4}
+                          alignItems="center"
+                        >
+                          <Chip
+                            label={
+                              application.name
+                            }
+                            size="small"
+                            sx={{
+                              fontWeight: 700,
+                              height: 26,
+                            }}
+                          />
+
+                          {cameraOffline && (
+                            <Chip
+                              label="Hors ligne"
+                              color="error"
+                              size="small"
+                              sx={{
+                                fontWeight: 800,
+                                height: 23,
+                              }}
+                            />
+                          )}
+                        </Stack>
                       </Box>
 
 
@@ -546,7 +613,6 @@ function CameraPage() {
                             }
                             variant="contained"
                             size="small"
-                            
                             endIcon={
                               <ChevronRightRoundedIcon />
                             }

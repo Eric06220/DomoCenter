@@ -839,6 +839,173 @@ function createAlertService({
 
   /*
    * -----------------------------------------
+   * MODE MAISON
+   * -----------------------------------------
+   */
+
+  async function notifyAwayModeIssues({
+    openings = [],
+    cameras = [],
+  }) {
+    const openSensors =
+      openings.filter(
+        (sensor) =>
+          sensor?.available === true &&
+          sensor?.isOpen === true
+      );
+
+    const offlineCameras =
+      cameras.filter(
+        (camera) =>
+          camera?.available === false
+      );
+
+    if (
+      openSensors.length === 0 &&
+      offlineCameras.length === 0
+    ) {
+      return {
+        notified: false,
+        openSensors: [],
+        offlineCameras: [],
+      };
+    }
+
+    const messageLines = [
+      "🔒 DomoCenter — MODE ABSENT",
+    ];
+
+    if (openSensors.length > 0) {
+      const openingNames =
+        openSensors
+          .map(
+            (sensor) =>
+              sensor.name
+          )
+          .join(", ");
+
+      messageLines.push(
+        `${openSensors.length} ouverture${
+          openSensors.length > 1
+            ? "s"
+            : ""
+        } : ${openingNames}`
+      );
+    }
+
+    if (offlineCameras.length > 0) {
+      const cameraNames =
+        offlineCameras
+          .map(
+            (camera) =>
+              camera.name
+          )
+          .join(", ");
+
+      messageLines.push(
+        `${offlineCameras.length} caméra${
+          offlineCameras.length > 1
+            ? "s"
+            : ""
+        } hors ligne : ${cameraNames}`
+      );
+    }
+
+    await homeAssistantService
+      .sendNotification({
+        message:
+          messageLines.join("\n"),
+      });
+
+    console.log(
+      "Contrôle Mode Absent DomoCenter : anomalie détectée."
+    );
+
+    return {
+      notified: true,
+
+      openSensors:
+        openSensors.map(
+          (sensor) => sensor.id
+        ),
+
+      offlineCameras:
+        offlineCameras.map(
+          (camera) => camera.id
+        ),
+    };
+  }
+
+  async function notifyAwayOpeningAlert(
+    sensor
+  ) {
+    if (!sensor?.name) {
+      return {
+        notified: false,
+      };
+    }
+
+    const location =
+      sensor.location ||
+      sensor.name;
+
+    const message =
+      "🚨 DomoCenter — OUVERTURE EN MODE ABSENT\n" +
+      `${sensor.name}\n` +
+      `Emplacement : ${location}`;
+
+    await homeAssistantService
+      .sendNotification({
+        message,
+        critical: true,
+      });
+
+    console.log(
+      `Alerte critique Mode Absent : ${sensor.name}`
+    );
+
+    return {
+      notified: true,
+      sensorId:
+        sensor.id ?? null,
+    };
+  }
+
+  async function notifyAwayCameraOfflineAlert(
+    camera
+  ) {
+    if (!camera?.name) {
+      return {
+        notified: false,
+      };
+    }
+
+  const message =
+    "📷 DomoCenter — CAMÉRA HORS LIGNE\n" +
+    `${camera.name}\n` +
+    `Emplacement : ${
+      camera.location ||
+      camera.name
+    }`;
+
+  await homeAssistantService
+    .sendNotification({
+      message,
+    });
+
+  console.log(
+    `Alerte caméra Mode Absent : ${camera.name}`
+  );
+
+  return {
+    notified: true,
+    cameraId:
+      camera.id ?? null,
+  };
+}
+
+  /*
+   * -----------------------------------------
    * OUTILS
    * -----------------------------------------
    */
@@ -903,6 +1070,10 @@ function createAlertService({
     processBatteryAlerts,
     processWaterLeakAlerts,
     processSmokeAlerts,
+
+    notifyAwayModeIssues,
+    notifyAwayOpeningAlert,
+    notifyAwayCameraOfflineAlert,
 
     acknowledgeWaterLeakAlert,
     acknowledgeSmokeAlert,

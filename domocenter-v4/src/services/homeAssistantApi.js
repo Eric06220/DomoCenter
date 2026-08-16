@@ -260,3 +260,27 @@ export async function acknowledgeSmokeAlert(
     }
   );
 }
+export async function getHouseMode() {
+  return fetchJson(
+    "/api/house-mode"
+  );
+}
+
+export async function setHouseMode(
+  mode
+) {
+  return fetchJson(
+    "/api/house-mode",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        mode,
+      }),
+    }
+  );
+}
+

@@ -15,8 +15,8 @@ function CameraSummary({
   cameras,
   loading = false,
 }) {
-  const integrated =
-    cameras?.integrated ?? 0;
+  const total =
+    cameras?.totalConfigured ?? 0;
 
   const available =
     cameras?.available ?? 0;
@@ -24,8 +24,11 @@ function CameraSummary({
   const unavailable =
     cameras?.unavailable ?? 0;
 
-  const notIntegrated =
-    cameras?.notIntegrated ?? 0;
+  const offlineCameras =
+    cameras?.cameras?.filter(
+      (camera) =>
+        camera.available === false
+    ) ?? [];
 
   const hasFailure =
     unavailable > 0;
@@ -44,7 +47,7 @@ function CameraSummary({
         action={
           <Chip
             size="small"
-            label={`${available} / ${integrated} disponibles`}
+            label={`${available} / ${total} disponibles`}
             color={
               hasFailure
                 ? "error"
@@ -62,59 +65,58 @@ function CameraSummary({
             Chargement des caméras…
           </Typography>
         ) : hasFailure ? (
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1}
-          >
-            <WarningAmberRoundedIcon
-              sx={{
-                color: "error.main",
-                fontSize: 20,
-              }}
-            />
-
-            <Typography
-              variant="body1"
-              fontWeight={600}
-              color="error.main"
-            >
-              {unavailable} caméra
-              {unavailable > 1 ? "s" : ""}{" "}
-              indisponible
-              {unavailable > 1 ? "s" : ""}.
-            </Typography>
-          </Stack>
-        ) : (
-          <Stack spacing={0.5}>
+          <Stack spacing={1}>
             <Stack
               direction="row"
               alignItems="center"
               spacing={1}
             >
-              <CheckCircleRoundedIcon
+              <WarningAmberRoundedIcon
                 sx={{
-                  color: "success.main",
+                  color: "error.main",
                   fontSize: 20,
                 }}
               />
 
-              <Typography variant="body1">
-                Toutes les caméras intégrées sont disponibles.
+              <Typography
+                variant="body1"
+                fontWeight={600}
+                color="error.main"
+              >
+                {unavailable} caméra
+                {unavailable > 1 ? "s" : ""}{" "}
+                hors ligne.
               </Typography>
             </Stack>
 
-            {notIntegrated > 0 && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                {notIntegrated} caméra
-                {notIntegrated > 1 ? "s" : ""}{" "}
-                non intégrée
-                {notIntegrated > 1 ? "s" : ""}.
-              </Typography>
-            )}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              {offlineCameras
+                .map(
+                  (camera) =>
+                    camera.name
+                )
+                .join(", ")}
+            </Typography>
+          </Stack>
+        ) : (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+          >
+            <CheckCircleRoundedIcon
+              sx={{
+                color: "success.main",
+                fontSize: 20,
+              }}
+            />
+
+            <Typography variant="body1">
+              Toutes les caméras sont disponibles.
+            </Typography>
           </Stack>
         )}
       </SectionCard>

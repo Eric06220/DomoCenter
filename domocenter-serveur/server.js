@@ -77,6 +77,10 @@ const {
 } = require("./services/alertService");
 
 const {
+  createHouseModeService,
+} = require("./services/houseModeService");
+
+const {
   findEntity,
   isEntityAvailable,
   readNumericEntity,
@@ -104,7 +108,7 @@ const BATTERY_CHECK_INTERVAL_MS =
   60_000;
 
 const SAFETY_CHECK_INTERVAL_MS =
-  2_000;
+  60_000;
 
 if (
   !homeAssistantUrl ||
@@ -135,6 +139,16 @@ const alertService =
         __dirname,
         "data",
         "alert-state.json"
+      ),
+  });
+
+const houseModeService =
+  createHouseModeService({
+    stateFilePath:
+      path.join(
+        __dirname,
+        "data",
+        "house-mode.json"
       ),
   });
 
@@ -217,10 +231,106 @@ homeAssistantService.subscribeStateChanges(
     const newState =
       eventData?.new_state;
 
+    const oldState =
+      eventData?.old_state;
+
     if (
       !entityId ||
       !newState
     ) {
+      return;
+    }
+
+    const openingSensor =
+      (
+        entityConfiguration
+          .openings ?? []
+      ).find(
+        (sensor) =>
+          sensor.entityId ===
+          entityId
+      );
+
+    if (openingSensor) {
+      const houseMode =
+        houseModeService
+          .getMode()
+          ?.mode;
+
+      const wasClosed =
+        oldState?.state === "off";
+
+      const isNowOpen =
+        newState.state === "on";
+
+      if (
+        houseMode === "absent" &&
+        wasClosed &&
+        isNowOpen
+      ) {
+        await alertService
+          .notifyAwayOpeningAlert({
+            id:
+              openingSensor.id,
+
+            name:
+              openingSensor.name,
+
+            location:
+              openingSensor.location,
+          });
+      }
+
+      dashboardService
+        .clearCache();
+
+      return;
+    }
+    
+    const cameraDevice =
+      (
+        entityConfiguration
+          .cameraDevices ?? []
+      ).find(
+        (camera) =>
+          camera.availabilityEntityId ===
+          entityId
+      );
+
+    if (cameraDevice) {
+      const houseMode =
+        houseModeService
+          .getMode()
+          ?.mode;
+
+      const wasOnline =
+        oldState?.state === "on";
+
+      const isNowOffline =
+        newState.state === "off";
+
+      if (
+        houseMode === "absent" &&
+        wasOnline &&
+        isNowOffline
+      ) {
+        await alertService
+          .notifyAwayCameraOfflineAlert({
+            id:
+              cameraDevice.id,
+
+            name:
+              cameraDevice.name,
+
+            location:
+              cameraDevice.location,
+          });
+      }
+    
+
+      dashboardService
+        .clearCache();
+
       return;
     }
 
@@ -516,6 +626,95 @@ async function checkSafetyAlerts() {
       false;
   }
 }
+
+app.get(
+  "/api/house-mode",
+  (
+    request,
+    response
+  ) => {
+    response.json({
+      current:
+        houseModeService.getMode(),
+
+      available:
+        houseModeService
+          .getAvailableModes(),
+    });
+  }
+);
+
+app.post(
+  "/api/house-mode",
+  async (
+    request,
+    response
+  ) => {
+    try {
+      const {
+        mode,
+      } = request.body;
+
+      const current =
+        houseModeService
+          .setMode(mode);
+
+      dashboardService
+        .clearCache();
+
+      let awayCheck = null;
+
+      if (mode === "absent") {
+        const dashboard =
+          await dashboardService
+            .getDashboardData(
+              true
+            );
+
+        const openings =
+          dashboard
+            ?.security
+            ?.openings
+            ?.sensors ??
+          [];
+
+        const cameras =
+          dashboard
+            ?.cameras
+            ?.cameras ??
+          [];
+
+        awayCheck =
+          await alertService
+            .notifyAwayModeIssues({
+              openings,
+              cameras,
+            });
+      }
+
+      return response.json({
+        success: true,
+        current,
+        awayCheck,
+      });
+    } catch (error) {
+      return response
+        .status(
+          getErrorStatus(
+            error,
+            400
+          )
+        )
+        .json({
+          success: false,
+          error:
+            getErrorDetails(
+              error
+            ),
+        });
+    }
+  }
+);
 
 app.get(
   "/api/health",
