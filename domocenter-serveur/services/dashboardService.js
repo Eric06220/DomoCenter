@@ -371,7 +371,7 @@ function createDashboardService({
 
     cache = {
       data,
-      createdAt: now,
+      createdAt: Date.now(),
     };
 
     return {
