@@ -113,7 +113,7 @@ function SettingsPage() {
 
         <Alert severity="info" icon={<InfoRoundedIcon />}>
           Home Assistant n’est pas encore connecté. Ces réglages préparent la
-          future communication entre le Raspberry Pi et DomoCenter.
+          communication entre le mini-PC, Home Assistant et DomoCenter.
         </Alert>
 
         <Grid container spacing={2}>
@@ -155,7 +155,7 @@ function SettingsPage() {
                     value={settings.homeAssistantUrl}
                     onChange={handleChange("homeAssistantUrl")}
                     placeholder="http://homeassistant.local:8123"
-                    helperText="Adresse locale qui sera utilisée après l’installation sur le Raspberry Pi."
+                    helperText="Adresse locale utilisée pour la communication avec Home Assistant."
                   />
 
                   <TextField
@@ -285,7 +285,7 @@ function SettingsPage() {
                   >
                     <Typography variant="body2" color="text.secondary">
                       Une actualisation courte affichera plus rapidement les
-                      changements, mais sollicitera davantage le Raspberry Pi
+                      changements, mais sollicitera davantage le mini-PC
                       et le réseau local.
                     </Typography>
                   </Box>

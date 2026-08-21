@@ -61,8 +61,8 @@ const {
 } = require("./services/energyControlService");
 
 const {
-  buildInfrastructureData,
-} = require("./services/infrastructureService");
+  getWindowsHealth,
+} = require("./services/windowsHealthService");
 
 const {
   buildServicesStatus,
@@ -156,7 +156,8 @@ const dashboardService =
   createDashboardService({
     homeAssistantService,
     entityConfiguration,
-
+    getWindowsHealth,
+    
     buildClimateData,
     buildClimateControlData,
     buildOpeningData,
@@ -166,7 +167,6 @@ const dashboardService =
     buildLightingData,
     buildCameraData,
     buildBatteryData,
-    buildInfrastructureData,
     buildServicesStatus,
     buildTuyaHealth,
 
@@ -426,7 +426,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "http://192.168.1.120:5173",
+      "http://192.168.1.63:5173",
     ],
   })
 );

@@ -347,24 +347,7 @@ const devices = {
       icon: "shutter",
     },
   ],
-
-  infrastructure: {
-    cpuTemperatureEntityId:
-      "sensor.system_monitor_temperature_du_processeur",
-
-    cpuUsageEntityId:
-      "sensor.system_monitor_utilisation_du_processeur",
-
-    memoryUsageEntityId:
-      "sensor.system_monitor_utilisation_de_la_memoire",
-
-    diskFreeEntityId:
-      "sensor.system_monitor_espace_libre",
-
-    diskUsedEntityId:
-      "sensor.system_monitor_espace_utilise",
-  },
-
+  
   cameraDevices: [
     {
       id: "portail",

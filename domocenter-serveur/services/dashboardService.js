@@ -3,6 +3,7 @@ const packageJson = require("../package.json");
 function createDashboardService({
   homeAssistantService,
   entityConfiguration,
+  getWindowsHealth,
   buildClimateData,
   buildClimateControlData,
   buildOpeningData,
@@ -12,7 +13,6 @@ function createDashboardService({
   buildLightingData,
   buildCameraData,
   buildBatteryData,
-  buildInfrastructureData,
   buildServicesStatus,
   buildTuyaHealth,
   getBatteryAlertStates,
@@ -66,6 +66,11 @@ function createDashboardService({
   async function createDashboardData() {
     const entities =
       await homeAssistantService.getEntities();
+
+    const windowsHealth =
+      typeof getWindowsHealth === "function"
+        ? await getWindowsHealth()
+        : null;
 
     const generatedAt =
       new Date().toISOString();
@@ -321,11 +326,7 @@ function createDashboardService({
         }),
 
       infrastructure:
-        buildInfrastructureData(
-          entityConfiguration.infrastructure,
-          entities,
-          readNumericEntity
-        ),
+        windowsHealth,
 
       services: buildServicesStatus({
         homeAssistantConnected: true,

@@ -68,24 +68,37 @@ function calculateGlobalStatus({
   tuyaWarning,
   tuyaCritical,
   internetConnected,
-  cpuTemperature,
+  homeAssistantVmOnline,
   cpuUsage,
   memoryUsage,
-  diskUsage,
+  systemDiskUsage,
+  backupDiskUsage,
 }) {
   const criticalReasons = [];
   const warningReasons = [];
 
   if (!homeAssistantConnected) {
-    criticalReasons.push("Home Assistant inaccessible");
+    criticalReasons.push(
+      "Home Assistant inaccessible"
+    );
+  }
+
+  if (!homeAssistantVmOnline) {
+    criticalReasons.push(
+      "VM Home Assistant arrêtée"
+    );
   }
 
   if (!domoCenterConnected) {
-    criticalReasons.push("DomoCenter indisponible");
+    criticalReasons.push(
+      "DomoCenter indisponible"
+    );
   }
 
   if (!tuyaConnected) {
-    criticalReasons.push("Tuya inaccessible");
+    criticalReasons.push(
+      "Tuya inaccessible"
+    );
   }
 
   if (tuyaCritical) {
@@ -99,62 +112,81 @@ function calculateGlobalStatus({
   }
 
   if (!internetConnected) {
-    criticalReasons.push("connexion Internet indisponible");
-  }
-
-  if (
-    Number.isFinite(cpuTemperature) &&
-    cpuTemperature >= 75
-  ) {
-    criticalReasons.push("température CPU critique");
-  } else if (
-    Number.isFinite(cpuTemperature) &&
-    cpuTemperature >= 60
-  ) {
-    warningReasons.push("température CPU élevée");
+    criticalReasons.push(
+      "connexion Internet indisponible"
+    );
   }
 
   if (
     Number.isFinite(cpuUsage) &&
     cpuUsage >= 95
   ) {
-    criticalReasons.push("CPU saturé");
+    criticalReasons.push(
+      "CPU saturé"
+    );
   } else if (
     Number.isFinite(cpuUsage) &&
     cpuUsage >= 80
   ) {
-    warningReasons.push("utilisation CPU élevée");
+    warningReasons.push(
+      "utilisation CPU élevée"
+    );
   }
 
   if (
     Number.isFinite(memoryUsage) &&
     memoryUsage >= 90
   ) {
-    criticalReasons.push("mémoire critique");
+    criticalReasons.push(
+      "mémoire critique"
+    );
   } else if (
     Number.isFinite(memoryUsage) &&
-    memoryUsage >= 75
+    memoryUsage >= 80
   ) {
-    warningReasons.push("mémoire élevée");
+    warningReasons.push(
+      "mémoire élevée"
+    );
   }
 
   if (
-    Number.isFinite(diskUsage) &&
-    diskUsage >= 90
+    Number.isFinite(systemDiskUsage) &&
+    systemDiskUsage >= 90
   ) {
-    criticalReasons.push("disque presque plein");
+    criticalReasons.push(
+      "SSD système presque plein"
+    );
   } else if (
-    Number.isFinite(diskUsage) &&
-    diskUsage >= 80
+    Number.isFinite(systemDiskUsage) &&
+    systemDiskUsage >= 80
   ) {
-    warningReasons.push("espace disque faible");
+    warningReasons.push(
+      "espace SSD système faible"
+    );
+  }
+
+  if (
+    Number.isFinite(backupDiskUsage) &&
+    backupDiskUsage >= 95
+  ) {
+    criticalReasons.push(
+      "disque de sauvegarde presque plein"
+    );
+  } else if (
+    Number.isFinite(backupDiskUsage) &&
+    backupDiskUsage >= 85
+  ) {
+    warningReasons.push(
+      "espace sauvegarde faible"
+    );
   }
 
   if (criticalReasons.length > 0) {
     return {
       label: "Critique",
       color: "error",
-      description: criticalReasons.join(" · "),
+      description:
+        criticalReasons.join(" · "),
     };
   }
 
@@ -162,7 +194,8 @@ function calculateGlobalStatus({
     return {
       label: "À surveiller",
       color: "warning",
-      description: warningReasons.join(" · "),
+      description:
+        warningReasons.join(" · "),
     };
   }
 
@@ -321,43 +354,42 @@ function SystemStatusCard({
     tuya?.latestDataUpdate ??
     null;
 
-  const cpuTemperature =
-    infrastructure?.cpuTemperature?.available
-      ? infrastructure.cpuTemperature.value
-      : null;
-
   const cpuUsage =
-    infrastructure?.cpuUsage?.available
-      ? infrastructure.cpuUsage.value
+    Number.isFinite(
+      infrastructure?.cpu?.usage
+    )
+      ? infrastructure.cpu.usage
       : null;
 
   const memoryUsage =
-    infrastructure?.memoryUsage?.available
-      ? infrastructure.memoryUsage.value
+    Number.isFinite(
+      infrastructure?.memory?.usage
+    )
+      ? infrastructure.memory.usage
       : null;
 
-  const diskUsed =
-    infrastructure?.diskUsed?.available
-      ? infrastructure.diskUsed.value
+  const systemDisk =
+    infrastructure?.disks?.system ?? null;
+
+  const backupDisk =
+    infrastructure?.disks?.backup ?? null;
+
+  const systemDiskUsage =
+    systemDisk?.available === true &&
+    Number.isFinite(systemDisk?.usage)
+      ? systemDisk.usage
       : null;
 
-  const diskFree =
-    infrastructure?.diskFree?.available
-      ? infrastructure.diskFree.value
+  const backupDiskUsage =
+    backupDisk?.available === true &&
+    Number.isFinite(backupDisk?.usage)
+      ? backupDisk.usage
       : null;
 
-  const diskTotal =
-    Number.isFinite(diskUsed) &&
-    Number.isFinite(diskFree)
-      ? diskUsed + diskFree
-      : null;
-
-  const diskUsage =
-    Number.isFinite(diskUsed) &&
-    Number.isFinite(diskTotal) &&
-    diskTotal > 0
-      ? (diskUsed / diskTotal) * 100
-      : null;
+  const homeAssistantVmOnline =
+    infrastructure
+      ?.homeAssistantVm
+      ?.online === true;
 
   const globalStatus = calculateGlobalStatus({
     homeAssistantConnected,
@@ -366,10 +398,11 @@ function SystemStatusCard({
     tuyaWarning,
     tuyaCritical,
     internetConnected,
-    cpuTemperature,
+    homeAssistantVmOnline,
     cpuUsage,
     memoryUsage,
-    diskUsage,
+    systemDiskUsage,
+    backupDiskUsage,
   });
 
   return (
@@ -419,7 +452,7 @@ function SystemStatusCard({
               fontWeight={800}
               sx={{ mb: 2 }}
             >
-              Santé du Raspberry Pi
+              Santé du mini-PC
             </Typography>
 
             <Grid container spacing={2.5}>
@@ -444,41 +477,62 @@ function SystemStatusCard({
                       : "Indisponible"
                   }
                   progress={memoryUsage}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <MetricItem
-                  label="Température CPU"
-                  value={
-                    Number.isFinite(cpuTemperature)
-                      ? `${cpuTemperature.toFixed(1)} °C`
-                      : "Indisponible"
-                  }
-                  progress={
-                    Number.isFinite(cpuTemperature)
-                      ? (cpuTemperature / 80) * 100
-                      : 0
-                  }
-                  description="Surveillance à partir de 60 °C"
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <MetricItem
-                  label="Disque utilisé"
-                  value={
-                    Number.isFinite(diskUsage)
-                      ? `${diskUsage.toFixed(1)} %`
-                      : "Indisponible"
-                  }
-                  progress={diskUsage}
                   description={
-                    Number.isFinite(diskUsed) &&
-                    Number.isFinite(diskTotal)
-                      ? `${diskUsed.toFixed(
+                    Number.isFinite(
+                      infrastructure?.memory?.usedGiB
+                    ) &&
+                    Number.isFinite(
+                      infrastructure?.memory?.totalGiB
+                    )
+                      ? `${infrastructure.memory.usedGiB.toFixed(
                           1
-                        )} / ${diskTotal.toFixed(1)} GiB`
+                        )} / ${infrastructure.memory.totalGiB.toFixed(
+                          1
+                        )} GiB`
+                      : null
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <MetricItem
+                  label="SSD système C:"
+                  value={
+                    Number.isFinite(systemDiskUsage)
+                      ? `${systemDiskUsage.toFixed(1)} %`
+                      : "Indisponible"
+                  }
+                  progress={systemDiskUsage}
+                  description={
+                    Number.isFinite(systemDisk?.usedGiB) &&
+                    Number.isFinite(systemDisk?.totalGiB)
+                      ? `${systemDisk.usedGiB.toFixed(
+                          1
+                        )} / ${systemDisk.totalGiB.toFixed(
+                          1
+                        )} GiB`
+                      : null
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <MetricItem
+                  label="Sauvegarde D:"
+                  value={
+                    Number.isFinite(backupDiskUsage)
+                      ? `${backupDiskUsage.toFixed(1)} %`
+                      : "Indisponible"
+                  }
+                  progress={backupDiskUsage}
+                  description={
+                    Number.isFinite(backupDisk?.usedGiB) &&
+                    Number.isFinite(backupDisk?.totalGiB)
+                      ? `${backupDisk.usedGiB.toFixed(
+                          1
+                        )} / ${backupDisk.totalGiB.toFixed(
+                          1
+                        )} GiB`
                       : null
                   }
                 />
@@ -496,7 +550,7 @@ function SystemStatusCard({
             </Typography>
 
                         <Grid container spacing={2.5}>
-              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+              <Grid size={{ xs: 6, sm: 6, lg: 3 }}>
                 <ServiceItem
                   label="Home Assistant"
                   online={homeAssistantConnected}
@@ -509,7 +563,7 @@ function SystemStatusCard({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+              <Grid size={{ xs: 6, sm: 6, lg: 3 }}>
                 <ServiceItem
                   label="DomoCenter"
                   online={domoCenterConnected}
@@ -522,7 +576,7 @@ function SystemStatusCard({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+              <Grid size={{ xs: 6, sm: 6, lg: 3 }}>
                 <ServiceItem
                   label="Tuya"
                   online={tuyaConnected}
@@ -550,7 +604,7 @@ function SystemStatusCard({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+              <Grid size={{ xs: 6, sm: 6, lg: 3 }}>
                 <ServiceItem
                   label="Internet"
                   online={internetConnected}
